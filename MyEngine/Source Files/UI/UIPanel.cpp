@@ -7,4 +7,4 @@
 
 #include "UIPanel.h"
 
-void UIPanel::Init(EngineContext* context){}
+void UIPanel::Init(EditorDrawContext& context){}

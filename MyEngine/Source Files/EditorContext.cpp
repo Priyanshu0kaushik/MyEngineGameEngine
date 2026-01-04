@@ -86,7 +86,7 @@ void EditorContext::Init(GLFWwindow* aWindow, EngineContext* engine){
     UIPanels.push_back(new ContentBrowserPanel());
     
     for(UIPanel* UI : UIPanels){
-        UI->Init()(context);
+        UI->Init(context);
     }
     
 }
