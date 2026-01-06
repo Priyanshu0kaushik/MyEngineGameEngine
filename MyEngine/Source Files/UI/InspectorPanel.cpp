@@ -253,5 +253,5 @@ void InspectorPanel::ShowLoadAssetButton()
         ImGuiInputTextFlags_EnterReturnsTrue
     );
 
-    if(pathEntered)m_Context.engine->PushMessage(std::make_unique<LoadAssetMessage>(m_AssetPath));
+    if(pathEntered) AssetManager::Get().GetAsset(m_AssetPath);
 }

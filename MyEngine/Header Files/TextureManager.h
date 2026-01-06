@@ -7,27 +7,28 @@
 
 #pragma once
 #include <cstdint>
-#include "Texture.h"
 #include <vector>
 #include <map>
 #include "MessageQueue.h"
+#include "AssetData.h"
 
 class TextureManager
 {
 public:
     TextureManager();    
-    uint32_t LoadTexture(const char* path);
-    TextureData* GetTexture(uint32_t textureId);
+    bool LoadTexture(const std::string& path, TextureData* target);
+    AssetHandle GetTexture(uint32_t textureId);
+    AssetHandle GetTexture(const std::string& path);
     std::unordered_map<std::string, uint32_t>& GetAllTextures(){return m_PathToID;}
-
-
-
+    
+    void RegisterTexture(const std::string& path, uint32_t iD);
+    uint32_t CreateTexture(TextureData* textureData);
+    
 private:
-    uint32_t CreateTexture(const TextureData& textureData);
-private:
 
-    std::unordered_map<uint32_t, TextureData> m_Textures;
+    std::unordered_map<uint32_t, TextureData*> m_Textures;
     uint32_t m_NextTextureID = 1;
+    uint32_t m_placeHolderID = 1;
     std::unordered_map<std::string, uint32_t> m_PathToID;
 
 };

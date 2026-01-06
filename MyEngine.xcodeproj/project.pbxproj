@@ -38,7 +38,7 @@
 			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
 			buildPhase = 85AD40852EAF77D300778F66 /* Sources */;
 			membershipExceptions = (
-				"Header Files/AssetTypes.h",
+				"Header Files/AssetData.h",
 				"Header Files/ECS/ECSSystemManager.h",
 				"Header Files/MessageQueue.h",
 				"Header Files/Project.h",

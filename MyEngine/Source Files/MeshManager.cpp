@@ -17,11 +17,11 @@ MeshManager::MeshManager()
     
 }
 
-uint32_t MeshManager::LoadMesh(const std::string& path)
+bool MeshManager::LoadMesh(const std::string& path, Mesh* target)
 {
     PrintMemory();
     if (m_PathToID.find(path) != m_PathToID.end())
-        return m_PathToID[path];
+        return true;
 
     std::string binPath = path + ".memesh";
     Mesh meshData;
@@ -30,9 +30,8 @@ uint32_t MeshManager::LoadMesh(const std::string& path)
     {
         std::cout<<"BinaryLoading"<< std::endl;
         LoadMeshBinary(binPath, meshData);
-        uint32_t id = CreateMesh(meshData);
-        m_PathToID[path] = id;
-        return id;
+        *target = meshData;
+        return true;
     }
     else{
         std::vector<glm::vec3> tempPositions;
@@ -43,7 +42,7 @@ uint32_t MeshManager::LoadMesh(const std::string& path)
         if (!file.is_open())
         {
             std::cout << "Failed to load mesh: " << path << std::endl;
-            return UINT32_MAX;
+            return false;
         }
 
         std::string line;
@@ -74,7 +73,7 @@ uint32_t MeshManager::LoadMesh(const std::string& path)
 
             else if (prefix == "f")
             {
-                std::vector<int> polygonIndices;
+                std::vector<uint32_t> polygonIndices;
                 std::string vertexData;
                 std::unordered_map<std::string, int> uniqueVertices;
 
@@ -127,26 +126,53 @@ uint32_t MeshManager::LoadMesh(const std::string& path)
         SaveMeshBinary(binPath, meshData);
     }
 
-    
-    uint32_t id = CreateMesh(meshData);
-    m_PathToID[path] = id;
-    return id;
+    *target = meshData;
+    target->IsLoaded = true;
+    return true;
 }
 
-uint32_t MeshManager::CreateMesh(const Mesh& meshData)
+uint32_t MeshManager::CreateMesh(Mesh* meshData)
 {
     uint32_t id = m_NextMeshID++;
     m_Meshes[id] = meshData;
     return id;
 }
 
-Mesh* MeshManager::GetMesh(uint32_t meshID)
-{
-    if(meshID == UINT32_MAX) return nullptr;
-    return &m_Meshes[meshID];
+void MeshManager::RegisterMesh(const std::string &path, uint32_t iD){
+    m_PathToID[path] = iD;
 }
 
-void MeshManager::TriangulateFace(const std::vector<int> &polygonIndices, std::vector<Face> &outFaces){
+AssetHandle MeshManager::GetMesh(uint32_t meshID)
+{
+    AssetHandle result;
+    if(meshID==UINT32_MAX){
+        result.Data = nullptr;
+        return result;
+    }
+    else{
+        auto it = m_Meshes.find(meshID);
+        
+        if (it != m_Meshes.end()) result.Data = it->second;
+        
+        else{
+            auto it1 = m_Meshes.find(m_placeHolderID);
+            if(it1!= m_Meshes.end()) result.Data = it1->second;
+            else result.Data = nullptr;
+        }
+    }
+    
+    if(result.Data) result.Data->Type = AssetType::Mesh;
+    result.IsReady = true;
+    return result;
+}
+
+AssetHandle MeshManager::GetMesh(const std::string &path){
+    auto it = m_PathToID.find(path);
+    if(it != m_PathToID.end()) return GetMesh(it->second);
+    else return GetMesh(UINT32_MAX);
+}
+
+void MeshManager::TriangulateFace(const std::vector<uint32_t> &polygonIndices, std::vector<Face> &outFaces){
     if (polygonIndices.size() < 3)
         return;
 

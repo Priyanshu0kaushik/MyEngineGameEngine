@@ -6,7 +6,7 @@
 //
 #pragma once
 #include <iostream>
-#include "AssetTypes.h"
+#include "AssetData.h"
 
 enum class MessageType {
    
@@ -20,15 +20,15 @@ struct Message{
 
 struct LoadAssetMessage : public Message {
     std::string path;
-    LoadAssetMessage(const std::string& p) : path(p) { type = MessageType::LoadAsset; }
+    AssetHandle assetHandle;
+    LoadAssetMessage(const std::string& p, AssetHandle& handle) : path(p), assetHandle(handle) { type = MessageType::LoadAsset; }
 };
 
 struct AssetLoadedMessage : public Message {
-    uint32_t id;
-    std::string path;
     AssetType assetType;
+    std::string path;
     
-    AssetLoadedMessage(uint32_t _id, std::string _path, AssetType _type)
-        : id(_id), path(_path), assetType(_type) { type = MessageType::AssetLoaded; }
+    AssetLoadedMessage(std::string _path, AssetType _type)
+        : path(_path), assetType(_type) { type = MessageType::AssetLoaded; }
 };
 

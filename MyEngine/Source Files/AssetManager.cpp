@@ -56,28 +56,74 @@ AssetType AssetManager::GetAssetTypeFromExtension(const std::string &path)
     return AssetType::None;
 }
 
-uint32_t AssetManager::LoadAsset(const std::string& path)
+bool AssetManager::LoadAsset(const std::string& path, AssetHandle& result)
 {
     AssetType type = GetAssetTypeFromExtension(path);
-
     switch (type) {
         case AssetType::Texture:
             std::cout << "[AssetManager] Detected Texture: " << path << std::endl;
-            return m_TextureManager.LoadTexture(path.c_str());
+            if(m_TextureManager.LoadTexture(path.c_str(), static_cast<TextureData*>(result.Data))){
+                uint32_t iD = m_TextureManager.CreateTexture(static_cast<TextureData*>(result.Data));
+                m_TextureManager.RegisterTexture(path.c_str(), iD);
+                result.IsReady = true;
+                return true;
+            }
+            else return false;
+            
 
         case AssetType::Mesh:
             std::cout << "[AssetManager] Detected Mesh: " << path << std::endl;
-            return m_MeshManager.LoadMesh(path.c_str());
+            if(m_MeshManager.LoadMesh(path.c_str(), static_cast<Mesh*>(result.Data))){
+                uint32_t iD = m_MeshManager.CreateMesh(static_cast<Mesh*>(result.Data));
+                m_MeshManager.RegisterMesh(path.c_str(), iD);
+                result.IsReady = true;
+                return true;
+            }
+            else return false;
+
+            
 
         case AssetType::Material:
             std::cout << "[AssetManager] Detected Material: " << path << std::endl;
             
-            return 0;
+            break;
 
         default:
             std::cerr << "[AssetManager] Unknown file type: " << path << std::endl;
-            return UINT32_MAX;
+            break;
     }
+    return false;
+}
+
+AssetHandle AssetManager::GetAsset(const std::string &path){
+    AssetHandle result;
+    AssetType type = GetAssetTypeFromExtension(path);
+    switch(type){
+        case AssetType::Texture:
+            std::cout << "[AssetManager] Detected Texture: " << path << std::endl;
+            result = m_TextureManager.GetTexture(path);
+            if(!result.Data){
+                result.Data = new TextureData();
+                messageQueue->Push(std::make_unique<LoadAssetMessage>(path, result));
+            }
+            break;
+        case AssetType::Mesh:
+            std::cout << "[AssetManager] Detected Mesh: " << path << std::endl;
+            result = m_MeshManager.GetMesh(path);
+            if(!result.Data){
+                result.Data = new Mesh();
+                messageQueue->Push(std::make_unique<LoadAssetMessage>(path, result));
+            }
+            break;
+        case AssetType::Material:
+            std::cout << "[AssetManager] Detected Material: " << path << std::endl;
+            break;
+
+        default:
+            std::cerr << "[AssetManager] Unknown file type: " << path << std::endl;
+            break;
+    }
+    return result;
 }
 
 void AssetManager::ProcessMessage(Message *msg)
@@ -85,13 +131,15 @@ void AssetManager::ProcessMessage(Message *msg)
     if (msg->type == MessageType::LoadAsset)
     {
         auto loadMsg = static_cast<LoadAssetMessage*>(msg);
-        uint32_t assetID = LoadAsset(loadMsg->path);
+        
+        bool success = LoadAsset(loadMsg->path, loadMsg->assetHandle);
         
         AssetType type = GetAssetTypeFromExtension(loadMsg->path);
-
-        if (assetID != UINT32_MAX)
+        
+        if (success)
         {
-            std::unique_ptr<AssetLoadedMessage> replyMsg = std::make_unique<AssetLoadedMessage>(assetID, loadMsg->path, type);
+            loadMsg->assetHandle.IsReady = true;
+            std::unique_ptr<AssetLoadedMessage> replyMsg = std::make_unique<AssetLoadedMessage>(loadMsg->path, type);
             messageQueue->Push(std::move(replyMsg));
         }
     }

@@ -23,8 +23,11 @@ void RenderSystem::Init()
 void RenderSystem::UploadMeshIfNeeded(Entity e, MeshComponent* mc)
 {
     if (mc->uploaded) return;
-
-    auto* mesh = AssetManager::Get().GetMeshManager().GetMesh(mc->meshID);
+    
+    AssetHandle handle = AssetManager::Get().GetMeshManager().GetMesh(mc->meshID);
+    if(!handle.IsReady || !handle.Data) return;
+    if(handle.Data->Type != AssetType::Mesh) return;
+    Mesh* mesh = static_cast<Mesh*>(handle.Data);
     if(mesh==nullptr) return;
     std::vector<float> gpuVertices;
     std::vector<uint32_t> gpuIndices;
@@ -107,8 +110,10 @@ void RenderSystem::Render(Shader& shader)
         shader.SetMatrix4(model, "transformMatrix");
         if (meshComp->textureID != UINT32_MAX)
        {
-           TextureData* Texture = AssetManager::Get().GetTextureManager().GetTexture(meshComp->textureID);
-           if(Texture==nullptr) return;
+           AssetHandle handle = AssetManager::Get().GetTextureManager().GetTexture(meshComp->textureID);
+           TextureData* Texture = static_cast<TextureData*>(handle.Data);
+           if(!handle.IsReady || !handle.Data) return;
+           if(handle.Data->Type != AssetType::Texture) return;
            
            glActiveTexture(GL_TEXTURE0);
            glBindTexture(GL_TEXTURE_2D, Texture->TextureObject);

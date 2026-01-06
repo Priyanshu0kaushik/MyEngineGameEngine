@@ -16,13 +16,12 @@ public:
     virtual void Init(EditorDrawContext& context) override;
     virtual void Draw(EditorDrawContext& context) override;
 private:
-    void OnItemRightClick();
     void ShowItems();
     void OnContentBrowserRightClick();
     void OnItemDeletePressed();
     
     std::filesystem::path s_PathToDelete;
 
-    TextureData FolderIcon, FileIcon;
+    AssetHandle FolderIconData, FileIconData;
     std::filesystem::path m_CurrentDirectory;
 };

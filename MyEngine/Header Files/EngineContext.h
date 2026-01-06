@@ -10,6 +10,7 @@
 #include "glfw3.h"
 #include "RenderSystem.h"
 #include "CameraSystem.h"
+#include "AssetData.h"
 #include "ECS/Coordinator.h"
 #include "MessageQueue.h"
 

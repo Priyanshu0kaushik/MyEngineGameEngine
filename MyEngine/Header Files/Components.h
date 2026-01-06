@@ -8,7 +8,7 @@
 #pragma once
 #include <glm/glm.hpp>
 #include <memory>
-#include "Texture.h"
+#include "AssetData.h"
 
 
 struct TransformComponent

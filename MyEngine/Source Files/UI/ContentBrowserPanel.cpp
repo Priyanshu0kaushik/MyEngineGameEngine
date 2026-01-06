@@ -11,7 +11,9 @@
 
 void ContentBrowserPanel::Init(EditorDrawContext& context)
 {
-//    context.engine->PushMessage(std::make_unique<LoadAssetMessage>());
+    
+    FolderIconData = AssetManager::Get().GetAsset("EngineAssets/Images/FolderIcon.png");
+    FolderIconData = AssetManager::Get().GetAsset("EngineAssets/Images/FileIcon.png");
 }
 
 void ContentBrowserPanel::Draw(EditorDrawContext& context)
@@ -66,12 +68,35 @@ void ContentBrowserPanel::Draw(EditorDrawContext& context)
             ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f, 0.3f, 0.3f, 1.0f));
         }
 
-        if (ImGui::Button(isDirectory ? "[Folder]" : "[File]", { thumbnailSize, thumbnailSize }))
+        if (FolderIconData.Data && static_cast<TextureData*>(FolderIconData.Data)->IsLoaded && FileIconData.Data && static_cast<TextureData*>(FileIconData.Data)->IsLoaded)
         {
-            if (isDirectory) m_CurrentDirectory /= path.filename();
-            else std::cout << "Selected Asset: " << filenameString << std::endl;
-            
+            unsigned int TextureObject;
+            if(isDirectory){
+                TextureData* Data = static_cast<TextureData*>(FolderIconData.Data);
+                TextureObject = Data->TextureObject;
+            }
+            else{
+                TextureData* Data = static_cast<TextureData*>(FileIconData.Data);
+                TextureObject = Data->TextureObject;
+            }
+            if (ImGui::ImageButton(isDirectory ? "[Folder]" : "[File]", TextureObject, ImVec2(64, 64)))
+            {
+                if (isDirectory) m_CurrentDirectory /= path.filename();
+                else std::cout << "Selected Asset: " << filenameString << std::endl;
+                
+            }
         }
+        else
+        {
+            if (ImGui::Button(isDirectory ? "[Folder]" : "[File]", { thumbnailSize, thumbnailSize }))
+            {
+                if (isDirectory) m_CurrentDirectory /= path.filename();
+                else std::cout << "Selected Asset: " << filenameString << std::endl;
+                
+            }
+        }
+        
+        
         
         ImGui::PopStyleColor();
 
@@ -110,10 +135,6 @@ void ContentBrowserPanel::Draw(EditorDrawContext& context)
     
     
     ImGui::End();
-}
-
-void ContentBrowserPanel::OnItemRightClick(){
-    
 }
 
 void ContentBrowserPanel::OnItemDeletePressed()

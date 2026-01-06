@@ -8,7 +8,6 @@
 #include "EngineContext.h"
 #include "Scene.h"
 #include "EditorContext.h"
-#include "Texture.h"
 #include "AssetManager.h"
 #include "Project.h"
 
@@ -59,6 +58,7 @@ EngineContext::EngineContext(int width, int height, const char* title)
     
     AssetManager::Allocate();
     AssetManager::Get().SetMessageQueue(m_MessageQueue);
+    AssetManager::Get().GetAsset("EngineAssets/Models/cube.obj");
 
     m_EditorContext = new EditorContext();
     m_EditorContext->Init(m_Window, this);

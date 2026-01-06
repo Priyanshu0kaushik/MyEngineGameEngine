@@ -9,7 +9,7 @@
 #include "TextureManager.h"
 #include "MeshManager.h"
 #include "MessageQueue.h"
-#include "AssetTypes.h"
+
 
 class AssetManager{
 public:
@@ -20,9 +20,11 @@ public:
     TextureManager& GetTextureManager() { return m_TextureManager; }
     MeshManager& GetMeshManager() { return m_MeshManager; }
     
-    uint32_t LoadAsset(const std::string& path);
+    AssetHandle GetAsset(const std::string& path);
+    bool LoadAsset(const std::string& path, AssetHandle& result);
     void ProcessMessage(Message* msg);
     void SetMessageQueue(std::shared_ptr<MessageQueue> q) { messageQueue = q; }
+    
     
 private:
     AssetType GetAssetTypeFromExtension(const std::string& path);

@@ -16,15 +16,15 @@ TextureManager::TextureManager(){
     
 }
 
-uint32_t TextureManager::LoadTexture(const char *path){
+bool TextureManager::LoadTexture(const std::string& path, TextureData* target){
     if (m_PathToID.find(path) != m_PathToID.end())
-        return m_PathToID[path];
+        return true;
     
     
     TextureData Texture;
     stbi_set_flip_vertically_on_load(true);
     int Channels = 0;
-    unsigned char *data = stbi_load(path, &Texture.Width, &Texture.Height, &Channels, 0);
+    unsigned char *data = stbi_load(path.c_str(), &Texture.Width, &Texture.Height, &Channels, 0);
 
     glGenTextures(1, &Texture.TextureObject);
     glBindTexture(GL_TEXTURE_2D, Texture.TextureObject);
@@ -46,22 +46,47 @@ uint32_t TextureManager::LoadTexture(const char *path){
     else
     {
         std::cout << "Failed to load texture" << std::endl;
+        return false;
     }
     stbi_image_free(data);
     
-    uint32_t id = CreateTexture(Texture);
-    m_PathToID[path] = id;
-    return id;
+    *target = Texture;
+    target->IsLoaded = true;
+    return true;
 }
 
-uint32_t TextureManager::CreateTexture(const TextureData &textureData)
+uint32_t TextureManager::CreateTexture(TextureData* textureData)
 {
     uint32_t id = m_NextTextureID++;
     m_Textures[id] = textureData;
     return id;
 }
 
-TextureData* TextureManager::GetTexture(uint32_t textureId){
-    if(textureId==UINT32_MAX) return nullptr;
-    return &m_Textures[textureId];
+AssetHandle TextureManager::GetTexture(uint32_t textureId){
+    AssetHandle result;
+    if(textureId==UINT32_MAX){
+        result.Data = nullptr;
+    }
+    auto it = m_Textures.find(textureId);
+    
+    if (it != m_Textures.end()) result.Data = it->second;
+    
+    else{
+        auto it1 = m_Textures.find(m_placeHolderID);
+        if(it1!= m_Textures.end()) result.Data = it1->second;
+        else result.Data = nullptr;
+    }
+    if(result.Data) result.Data->Type = AssetType::Texture;
+    result.IsReady = true;
+    return result;
+}
+
+AssetHandle TextureManager::GetTexture(const std::string& path){
+    auto it = m_PathToID.find(path);
+    if(it != m_PathToID.end()) return GetTexture(it->second);
+    else return GetTexture(UINT32_MAX);
+}
+
+void TextureManager::RegisterTexture(const std::string &path, uint32_t iD){
+    m_PathToID[path] = iD;
 }
