@@ -13,7 +13,7 @@ void ContentBrowserPanel::Init(EditorDrawContext& context)
 {
     
     FolderIconData = AssetManager::Get().GetAsset("EngineAssets/Images/FolderIcon.png");
-    FolderIconData = AssetManager::Get().GetAsset("EngineAssets/Images/FileIcon.png");
+    FileIconData = AssetManager::Get().GetAsset("EngineAssets/Images/FileIcon.png");
 }
 
 void ContentBrowserPanel::Draw(EditorDrawContext& context)
@@ -60,30 +60,18 @@ void ContentBrowserPanel::Draw(EditorDrawContext& context)
 
         bool isDirectory = directoryEntry.is_directory();
         
-        if (isDirectory)
-        {
-            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.7f, 0.2f, 1.0f));
-        } else
-        {
-            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f, 0.3f, 0.3f, 1.0f));
-        }
 
         if (FolderIconData.Data && static_cast<TextureData*>(FolderIconData.Data)->IsLoaded && FileIconData.Data && static_cast<TextureData*>(FileIconData.Data)->IsLoaded)
         {
-            unsigned int TextureObject;
-            if(isDirectory){
-                TextureData* Data = static_cast<TextureData*>(FolderIconData.Data);
-                TextureObject = Data->TextureObject;
-            }
-            else{
-                TextureData* Data = static_cast<TextureData*>(FileIconData.Data);
-                TextureObject = Data->TextureObject;
-            }
-            if (ImGui::ImageButton(isDirectory ? "[Folder]" : "[File]", TextureObject, ImVec2(64, 64)))
+            uint32_t textureID = isDirectory ?
+                    static_cast<TextureData*>(FolderIconData.Data)->TextureObject :
+                    static_cast<TextureData*>(FileIconData.Data)->TextureObject;
+            ImTextureID imTexID = (ImTextureID)(intptr_t)textureID;
+            
+            if (ImGui::ImageButton(isDirectory ? "[Folder]" : "[File]", imTexID, ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0)))
             {
                 if (isDirectory) m_CurrentDirectory /= path.filename();
                 else std::cout << "Selected Asset: " << filenameString << std::endl;
-                
             }
         }
         else
@@ -97,8 +85,7 @@ void ContentBrowserPanel::Draw(EditorDrawContext& context)
         }
         
         
-        
-        ImGui::PopStyleColor();
+    
 
         if (!isDirectory && ImGui::BeginDragDropSource())
         {
