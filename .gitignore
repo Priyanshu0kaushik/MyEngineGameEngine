@@ -1,0 +1,35 @@
+# --- Build & Output ---
+build/
+bin/
+out/
+.cache/
+
+# --- IDEs & Project Files ---
+.vscode/
+.vs/
+*.xcodeproj/
+*.xcworkspace/
+*.sln
+*.vcxproj
+*.filters
+*.user
+xcuserdata/
+DerivedData/
+
+# --- Compiled Libraries & Binaries ---
+*.o
+*.obj
+*.a
+*.lib
+*.dylib
+*.so
+*.dll
+*.exe
+*.app
+
+# --- OS specific ---
+.DS_Store
+Thumbs.db
+
+# --- ImGui Specific ---
+imgui.ini
