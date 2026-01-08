@@ -6,10 +6,10 @@
 //
 #pragma once
 
-#include "glad.h"
+#include "GLAD/include/glad/glad.h"
 #include "glfw3.h"
-#include "RenderSystem.h"
-#include "CameraSystem.h"
+#include "ECSSystems/RenderSystem.h"
+#include "ECSSystems/CameraSystem.h"
 #include "AssetData.h"
 #include "ECS/Coordinator.h"
 #include "MessageQueue.h"

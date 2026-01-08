@@ -5,8 +5,8 @@
 //  Created by Priyanshu Kaushik on 07/12/2025.
 //
 
-#include "CameraSystem.h"
-#include "glad.h"
+#include "ECSSystems/CameraSystem.h"
+#include "GLAD/include/glad/glad.h"
 #include "glfw3.h"
 
 void CameraSystem::Init()

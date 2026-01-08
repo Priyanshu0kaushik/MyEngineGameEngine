@@ -9,8 +9,8 @@
 #include <memory>
 #include <vector>
 #include "ECS/Coordinator.h"
-#include "RenderSystem.h"
-#include "CameraSystem.h"
+#include "ECSSystems/RenderSystem.h"
+#include "ECSSystems/CameraSystem.h"
 
 class Shader;
 class Camera;

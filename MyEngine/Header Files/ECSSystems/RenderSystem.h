@@ -6,10 +6,10 @@
 //
 
 #pragma once
-#include "ECSSystem.h"
+#include "ECS/ECSSystem.h"
 #include "Shader.h"
 #include "Components.h"
-#include "Coordinator.h"
+#include "ECS/Coordinator.h"
 
 class RenderSystem : public ECSSystem{
 public:

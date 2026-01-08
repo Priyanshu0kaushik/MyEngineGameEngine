@@ -339,6 +339,7 @@
 					"$(PROJECT_DIR)/MyEngine/External/GLFW/**",
 					"$(PROJECT_DIR)/External/GLAD/include/**",
 					"$(PROJECT_DIR)/MyEngine/External/GLFW",
+					"$(PROJECT_DIR)/MyEngine/External/GLFW/lib-vc2022",
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "MyEngine/Header Files/ECS/MyEngine-Bridging-Header.h";
@@ -364,6 +365,7 @@
 					"$(PROJECT_DIR)/MyEngine/External/GLFW/**",
 					"$(PROJECT_DIR)/External/GLAD/include/**",
 					"$(PROJECT_DIR)/MyEngine/External/GLFW",
+					"$(PROJECT_DIR)/MyEngine/External/GLFW/lib-vc2022",
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "MyEngine/Header Files/ECS/MyEngine-Bridging-Header.h";

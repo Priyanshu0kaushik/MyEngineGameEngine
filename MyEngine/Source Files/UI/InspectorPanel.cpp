@@ -5,7 +5,7 @@
 //  Created by Priyanshu Kaushik on 18/12/2025.
 //
 
-#include "InspectorPanel.h"
+#include "UI/InspectorPanel.h"
 #include "AssetManager.h"
 #include "Scene.h"
 

@@ -7,7 +7,7 @@
 #include "Scene.h"
 #include "Shader.h"
 #include "Components.h"
-#include "RenderSystem.h"
+#include "ECSSystems/RenderSystem.h"
 
 
 Entity Scene::AddEntity(char* aName)

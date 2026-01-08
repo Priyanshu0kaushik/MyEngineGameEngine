@@ -5,10 +5,10 @@
 //  Created by Priyanshu Kaushik on 19/11/2025.
 //
 
-#include "RenderSystem.h"
-#include "Coordinator.h"
+#include "ECSSystems/RenderSystem.h"
+#include "ECS/Coordinator.h"
 #include "AssetManager.h"
-#include "glad.h"
+#include "GLAD/include/glad/glad.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>

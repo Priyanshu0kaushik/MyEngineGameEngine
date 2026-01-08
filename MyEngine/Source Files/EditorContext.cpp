@@ -10,15 +10,15 @@
 #include "MessageQueue.h"
 #include "Scene.h"
 #include "imgui.h"
-#include "glad.h"
+#include "GLAD/include/glad/glad.h"
 #include "glfw3.h"
 #include "MeshManager.h"
 #include "TextureManager.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
-#include "HierarchyPanel.h"
-#include "InspectorPanel.h"
-#include "ContentBrowserPanel.h"
+#include "UI/HierarchyPanel.h"
+#include "UI/InspectorPanel.h"
+#include "UI/ContentBrowserPanel.h"
 #include <iostream>
 #include <string>
 

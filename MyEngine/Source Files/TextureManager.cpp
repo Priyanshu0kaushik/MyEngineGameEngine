@@ -7,7 +7,7 @@
 
 #include "TextureManager.h"
 #include <iostream>
-#include "glad.h"
+#include "GLAD/include/glad/glad.h"
 #include "glfw3.h"
 #include "stb_image.h"
 #include <assert.h>

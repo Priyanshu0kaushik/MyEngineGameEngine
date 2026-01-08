@@ -6,9 +6,9 @@
 //
 
 #pragma once
-#include "ECSSystem.h"
+#include "ECS/ECSSystem.h"
 #include "Components.h"
-#include "Coordinator.h"
+#include "ECS/Coordinator.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 

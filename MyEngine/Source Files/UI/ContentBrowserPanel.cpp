@@ -5,13 +5,13 @@
 //  Created by Priyanshu Kaushik on 04/01/2026.
 //
 
-#include "ContentBrowserPanel.h"
+#include "UI/ContentBrowserPanel.h"
 #include "Project.h"
+#include <string>
 
 
 void ContentBrowserPanel::Init(EditorDrawContext& context)
 {
-    
     FolderIconData = AssetManager::Get().GetAsset("EngineAssets/Images/FolderIcon.png");
     FileIconData = AssetManager::Get().GetAsset("EngineAssets/Images/FileIcon.png");
 }
@@ -54,6 +54,15 @@ void ContentBrowserPanel::Draw(EditorDrawContext& context)
     {
         const auto& path = directoryEntry.path();
         std::string filenameString = path.filename().string();
+        std::string extension = path.extension().string();
+        if (!directoryEntry.is_directory())
+        {
+            auto it = std::find(m_ignoredExtensions.begin(), m_ignoredExtensions.end(), extension);
+            if (it!=m_ignoredExtensions.end())
+            {
+                continue;
+            }
+        }
         
         
         ImGui::PushID(filenameString.c_str());
@@ -83,9 +92,6 @@ void ContentBrowserPanel::Draw(EditorDrawContext& context)
                 
             }
         }
-        
-        
-    
 
         if (!isDirectory && ImGui::BeginDragDropSource())
         {

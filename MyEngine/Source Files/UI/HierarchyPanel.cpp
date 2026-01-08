@@ -5,7 +5,7 @@
 //  Created by Priyanshu Kaushik on 18/12/2025.
 //
 
-#include "HierarchyPanel.h"
+#include "UI/HierarchyPanel.h"
 
 void HierarchyPanel::Draw(EditorDrawContext& context)
 {
