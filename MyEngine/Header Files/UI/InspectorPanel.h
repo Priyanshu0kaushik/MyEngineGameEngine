@@ -11,6 +11,7 @@
 class InspectorPanel : public UIPanel{
 public:
     virtual void Draw(EditorDrawContext& context) override;
+private:
     void ShowAddComponentsList();
     void ShowNameComponent();
     void ShowTransformComponent();
@@ -18,7 +19,10 @@ public:
     void ShowCameraComponent();
     void ShowLoadAssetButton();
     void RenameRender();
-
+    void ShowMaterialSetting(Material& material);
+    
+    void DrawAssetSlot(const char* Name, std::string& path, uint32_t& iD);
+    void UpdateAssetSlot(std::string& path, uint32_t& id);
 private:
     EditorDrawContext m_Context;
 };

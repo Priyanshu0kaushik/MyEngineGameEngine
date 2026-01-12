@@ -61,10 +61,11 @@ bool AssetManager::LoadAsset(const std::string& path, AssetHandle& result)
     AssetType type = GetAssetTypeFromExtension(path);
     switch (type) {
         case AssetType::Texture:
-            std::cout << "[AssetManager] Detected Texture: " << path << std::endl;
+            std::cout << "[AssetManager-LoadAsset] Detected Texture: " << path << std::endl;
             if(m_TextureManager.LoadTexture(path.c_str(), static_cast<TextureData*>(result.Data))){
                 uint32_t iD = m_TextureManager.CreateTexture(static_cast<TextureData*>(result.Data));
                 m_TextureManager.RegisterTexture(path.c_str(), iD);
+                result.iD = iD;
                 result.IsReady = true;
                 return true;
             }
@@ -72,9 +73,10 @@ bool AssetManager::LoadAsset(const std::string& path, AssetHandle& result)
             
 
         case AssetType::Mesh:
-            std::cout << "[AssetManager] Detected Mesh: " << path << std::endl;
+            std::cout << "[AssetManager-LoadAsset] Detected Mesh: " << path << std::endl;
             if(m_MeshManager.LoadMesh(path.c_str(), static_cast<Mesh*>(result.Data))){
                 uint32_t iD = m_MeshManager.CreateMesh(static_cast<Mesh*>(result.Data));
+                result.iD = iD;
                 m_MeshManager.RegisterMesh(path.c_str(), iD);
                 result.IsReady = true;
                 return true;
@@ -84,12 +86,12 @@ bool AssetManager::LoadAsset(const std::string& path, AssetHandle& result)
             
 
         case AssetType::Material:
-            std::cout << "[AssetManager] Detected Material: " << path << std::endl;
+            std::cout << "[AssetManager-LoadAsset] Detected Material: " << path << std::endl;
             
             break;
 
         default:
-            std::cerr << "[AssetManager] Unknown file type: " << path << std::endl;
+            std::cerr << "[AssetManager-LoadAsset] Unknown file type: " << path << std::endl;
             break;
     }
     return false;
@@ -100,7 +102,7 @@ AssetHandle AssetManager::GetAsset(const std::string &path){
     AssetType type = GetAssetTypeFromExtension(path);
     switch(type){
         case AssetType::Texture:
-            std::cout << "[AssetManager] Detected Texture: " << path << std::endl;
+            std::cout << "[AssetManager-GetAsset] Detected Texture: " << path << std::endl;
             result = m_TextureManager.GetTexture(path);
             if(!result.Data){
                 result.Data = new TextureData();
@@ -108,7 +110,7 @@ AssetHandle AssetManager::GetAsset(const std::string &path){
             }
             break;
         case AssetType::Mesh:
-            std::cout << "[AssetManager] Detected Mesh: " << path << std::endl;
+            std::cout << "[AssetManager-GetAsset] Detected Mesh: " << path << std::endl;
             result = m_MeshManager.GetMesh(path);
             if(!result.Data){
                 result.Data = new Mesh();
@@ -116,13 +118,36 @@ AssetHandle AssetManager::GetAsset(const std::string &path){
             }
             break;
         case AssetType::Material:
-            std::cout << "[AssetManager] Detected Material: " << path << std::endl;
+            std::cout << "[AssetManager-GetAsset] Detected Material: " << path << std::endl;
             break;
 
         default:
-            std::cerr << "[AssetManager] Unknown file type: " << path << std::endl;
+            std::cerr << "[AssetManager-GetAsset] Unknown file type: " << path << std::endl;
             break;
     }
+    return result;
+}
+
+AssetHandle AssetManager::GetAsset(AssetType Type, const uint32_t iD)
+{
+    switch(Type){
+        case AssetType::Texture:
+            return m_TextureManager.GetTexture(iD);
+            
+            break;
+        case AssetType::Mesh:
+            return m_MeshManager.GetMesh(iD);
+            
+            break;
+        case AssetType::Material:
+            
+            break;
+
+        default:
+            std::cerr << "[AssetManager-GetAsset] Unknown file type: " << std::endl;
+            break;
+    }
+    AssetHandle result;
     return result;
 }
 
@@ -143,4 +168,9 @@ void AssetManager::ProcessMessage(Message *msg)
             messageQueue->Push(std::move(replyMsg));
         }
     }
+}
+
+void AssetManager::CleanUp(){
+    m_MeshManager.CleanUp();
+    m_TextureManager.CleanUp();
 }

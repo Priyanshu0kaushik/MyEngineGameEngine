@@ -7,7 +7,9 @@
 
 #include "UI/InspectorPanel.h"
 #include "AssetManager.h"
+#include <glm/gtc/type_ptr.hpp>
 #include "Scene.h"
+#include <filesystem>
 
 void InspectorPanel::Draw(EditorDrawContext &context)
 {
@@ -135,41 +137,25 @@ void InspectorPanel::ShowMeshComponent()
     }
     
     
-    ImGui::Separator();
     
+    
+    ImGui::Separator();
+    ShowMaterialSetting(mesh->material);
+    
+    
+}
+
+void InspectorPanel::ShowMaterialSetting(Material& material)
+{
     auto& Textures = AssetManager::Get().GetTextureManager().GetAllTextures();
 
-    std::string currentTextureName = "Unknown";
+    DrawAssetSlot("Main Texture", material.albedoPath, material.albedoID);
+    DrawAssetSlot("Normal Map", material.normalPath, material.normalID);
+    DrawAssetSlot("Specular Map", material.specPath, material.specID);
     
-    for (auto& [path, id] : Textures)
-    {
-        if (id == mesh->textureID)
-        {
-            currentTextureName = path;
-            break;
-        }
-    }
-
-    ImGui::Text("Current Texture:");
-    ImGui::TextWrapped("%s", currentTextureName.c_str());
-
-    ImGui::Spacing();
-    ImGui::TextWrapped("Change Texture");
-    if (ImGui::BeginCombo("###Change Texture", currentTextureName.c_str()))
-    {
-        for (auto& [path, id] : Textures)
-        {
-            bool isSelected = (id == mesh->textureID);
-            if (ImGui::Selectable(path.c_str(), isSelected))
-            {
-                mesh->textureID = id;
-            }
-
-            if (isSelected)
-                ImGui::SetItemDefaultFocus();
-        }
-        ImGui::EndCombo();
-    }
+    UpdateAssetSlot(material.albedoPath, material.albedoID);
+    UpdateAssetSlot(material.normalPath, material.normalID);
+    UpdateAssetSlot(material.specPath, material.specID);
     
     if(ImGui::Button("Reload Shader")){
         m_Context.engine->GetShader()->Reload();
@@ -177,6 +163,65 @@ void InspectorPanel::ShowMeshComponent()
     
     ImGui::Separator();
 
+    
+    if (ImGui::CollapsingHeader("Material")) {
+        ImGui::ColorEdit3("Ambient", glm::value_ptr(material.Ambient));
+        ImGui::ColorEdit3("Diffuse", glm::value_ptr(material.Diffuse));
+        ImGui::ColorEdit3("Specular", glm::value_ptr(material.Specular));
+        ImGui::SliderFloat("Shininess", &material.Shininess, 1.0f, 256.0f);
+    }
+    
+}
+
+void InspectorPanel::DrawAssetSlot(const char* Name, std::string &path, uint32_t &iD)
+{
+    ImGui::PushID(Name);
+    std::string currentTextureName = !path.empty()? path : "Unknown";
+    
+    ImGui::TextWrapped("%s", Name);
+
+    ImGui::Spacing();
+    ImGui::TextWrapped("Change Texture");
+
+    uint32_t openGLHandle = 0;
+    if (iD != UINT32_MAX) {
+        AssetHandle handle = AssetManager::Get().GetTextureManager().GetTexture(iD);
+        if (handle.IsReady && handle.Data) {
+            TextureData* texData = static_cast<TextureData*>(handle.Data);
+            openGLHandle = texData->TextureObject;
+        }
+    }
+    if (iD != UINT32_MAX) {
+        ImGui::Image((ImTextureID)(uintptr_t)openGLHandle, ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0));
+    } else {
+        ImGui::Button(path.empty() ? "Empty" : "Loading...", ImVec2(64, 64));
+    }
+
+    if (ImGui::BeginDragDropTarget()) {
+        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM")) {
+            const char* assetPath = (const char*)payload->Data;
+            
+            path = assetPath;
+            iD = UINT32_MAX;
+            AssetManager::Get().GetAsset(path);
+            std::cout << "Dropped and Loaded: " << path << std::endl;
+        }
+        ImGui::EndDragDropTarget();
+    }
+    ImGui::SameLine();
+    ImGui::TextWrapped("%s", path.empty() ? "None" : std::filesystem::path(path).filename().string().c_str());
+    ImGui::PopID();
+    
+}
+
+void InspectorPanel::UpdateAssetSlot(std::string &path, uint32_t &id)
+{
+    if (!path.empty() && id == UINT32_MAX) {
+        AssetHandle handle = AssetManager::Get().GetAsset(path);
+        if (handle.IsReady) {
+            id = handle.iD;
+        }
+    }
 }
 
 void InspectorPanel::ShowCameraComponent()

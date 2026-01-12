@@ -27,8 +27,8 @@ public:
     std::unordered_map<std::string, uint32_t>& GetAllMeshes(){return m_PathToID;}
     uint32_t CreateMesh(Mesh* meshData);
     void RegisterMesh(const std::string& path, uint32_t iD);
+    void CleanUp();
 private:
-    void UploadToGPU(Mesh& mesh);
     
     bool SaveMeshBinary(const std::string& path, const Mesh& mesh);
     bool LoadMeshBinary(const std::string& path, Mesh& outMesh);

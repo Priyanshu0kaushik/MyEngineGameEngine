@@ -47,7 +47,23 @@ struct TextureData : public BaseData{
     unsigned int TextureObject;
 };
 
+struct Material{
+    glm::vec3 Ambient = { 0.1f, 0.1f, 0.1f };
+    glm::vec3 Diffuse = { 1.0f, 1.0f, 1.0f };
+    glm::vec3 Specular = { 0.5f, 0.5f, 0.5f };
+    float Shininess = 32.0f;
+
+    uint32_t albedoID = UINT32_MAX;
+    uint32_t normalID  = UINT32_MAX;
+    uint32_t specID    = UINT32_MAX;
+
+    std::string albedoPath = "";
+    std::string normalPath  = "";
+    std::string specPath    = "";
+};
+
 struct AssetHandle{
     BaseData* Data;
+    uint32_t iD = UINT32_MAX;
     bool IsReady = false;
 };

@@ -122,7 +122,18 @@ void Shader::Use(){
     glUseProgram(shaderProgram);
 }
 
-void Shader::SetMatrix4(glm::mat4 aMatrix, const std::string& aName){
+void Shader::SetMatrix4(glm::mat4 aMatrix, const std::string& aName) const{
     glUniformMatrix4fv(glGetUniformLocation(shaderProgram, aName.c_str()), 1, GL_FALSE, glm::value_ptr(aMatrix));
-    
+}
+
+void Shader::SetBool(bool booleanToSet, const std::string &aName) const{
+    glUniform1i(glGetUniformLocation(shaderProgram, aName.c_str()), (int)booleanToSet);
+}
+
+void Shader::SetVec3(const std::string &name, const glm::vec3 &value) const {
+    glUniform3fv(glGetUniformLocation(shaderProgram, name.c_str()), 1, &value[0]);
+}
+
+void Shader::SetFloat(const std::string &name, float value) const {
+    glUniform1f(glGetUniformLocation(shaderProgram, name.c_str()), value);
 }

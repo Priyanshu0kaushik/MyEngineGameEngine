@@ -30,6 +30,9 @@ file(GLOB IMGUI_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/MyEngine/External/ImGui/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/MyEngine/External/ImGui/*.h"
 )
+file(GLOB_RECURSE SHADER_FILES 
+    "${CMAKE_CURRENT_SOURCE_DIR}/MyEngine/Shaders/*.glsl"
+)
 
 set(ENTRY_POINT "${CMAKE_CURRENT_SOURCE_DIR}/MyEngine/main.cpp")
 
@@ -39,6 +42,7 @@ add_executable(${PROJECT_NAME}
     ${MAIN_HEADER_FILES} 
     ${GLAD_SRC} 
     ${IMGUI_SOURCES}
+    ${SHADER_FILES}
 )
 
 
@@ -86,8 +90,22 @@ else()
     message(WARNING "Assets directory not found at: ${ASSETS_DIR}")
 endif()
 
+set(SHADERS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/MyEngine/Shaders")
+
+if(EXISTS "${SHADERS_DIR}")
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${SHADERS_DIR}"
+        "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Shaders"
+        COMMENT "Copying shaders to build directory..."
+    )
+else()
+    message(WARNING "Shaders directory not found at: ${SHADERS_DIR}")
+endif()
+
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/MyEngine/Source Files" PREFIX "Source" FILES ${MAIN_SRC_FILES})
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/MyEngine/Header Files" PREFIX "Headers" FILES ${MAIN_HEADER_FILES})
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/MyEngine/Shaders" PREFIX "Shaders" FILES ${SHADER_FILES})
 source_group("External\\GLAD" FILES ${GLAD_SRC})
 source_group("External\\ImGui" FILES ${IMGUI_SOURCES})
 

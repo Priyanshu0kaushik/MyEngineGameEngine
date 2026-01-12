@@ -21,11 +21,12 @@ public:
     MeshManager& GetMeshManager() { return m_MeshManager; }
     
     AssetHandle GetAsset(const std::string& path);
+    AssetHandle GetAsset(AssetType Type, const uint32_t iD);
     bool LoadAsset(const std::string& path, AssetHandle& result);
     void ProcessMessage(Message* msg);
     void SetMessageQueue(std::shared_ptr<MessageQueue> q) { messageQueue = q; }
     
-    
+    void CleanUp();
 private:
     AssetType GetAssetTypeFromExtension(const std::string& path);
 private:

@@ -99,6 +99,8 @@ glm::mat4 RenderSystem::BuildModelMatrix(TransformComponent* t)
 void RenderSystem::Render(Shader& shader)
 {
     shader.Use();
+//    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); 
+
     for (Entity e : mEntities)
     {
         TransformComponent* transform = m_Coordinator->GetComponent<TransformComponent>(e);
@@ -108,20 +110,48 @@ void RenderSystem::Render(Shader& shader)
 
         glm::mat4 model = BuildModelMatrix(transform);
         shader.SetMatrix4(model, "transformMatrix");
-        if (meshComp->textureID != UINT32_MAX)
-       {
-           AssetHandle handle = AssetManager::Get().GetTextureManager().GetTexture(meshComp->textureID);
-           TextureData* Texture = static_cast<TextureData*>(handle.Data);
-           if(!handle.IsReady || !handle.Data) return;
-           if(handle.Data->Type != AssetType::Texture) return;
-           
-           glActiveTexture(GL_TEXTURE0);
-           glBindTexture(GL_TEXTURE_2D, Texture->TextureObject);
-           glUniform1i(glGetUniformLocation(shader.shaderProgram, "mainTexture"), 0);
+        // set material settings
+        shader.SetVec3("u_Material.ambient", meshComp->material.Ambient);
+        shader.SetVec3("u_Material.diffuse", meshComp->material.Diffuse);
+        shader.SetVec3("u_Material.specular", meshComp->material.Specular);
+        shader.SetFloat("u_Material.shininess", meshComp->material.Shininess);
+        
+        bool hasAlbedo = false;
+        bool hasSpec = false;
+        if (meshComp->material.albedoID != UINT32_MAX)
+        {
+           AssetHandle albedoHandle = AssetManager::Get().GetAsset(AssetType::Texture, meshComp->material.albedoID);
+           if(albedoHandle.IsReady && albedoHandle.Data)
+           {
+               TextureData* albedoTex = static_cast<TextureData*>(albedoHandle.Data);
+               glActiveTexture(GL_TEXTURE0);
+               glBindTexture(GL_TEXTURE_2D, albedoTex->TextureObject);
+               glUniform1i(glGetUniformLocation(shader.shaderProgram, "mainTexture"), 0);
+               hasAlbedo = true;
+           }
        }
+        if (meshComp->material.specID != UINT32_MAX)
+        {
+           AssetHandle specHandle = AssetManager::Get().GetAsset(AssetType::Texture, meshComp->material.specID);
+           if(specHandle.IsReady && specHandle.Data)
+           {
+               TextureData* specTex = static_cast<TextureData*>(specHandle.Data);
+               glActiveTexture(GL_TEXTURE1);
+               glBindTexture(GL_TEXTURE_2D, specTex->TextureObject);
+               glUniform1i(glGetUniformLocation(shader.shaderProgram, "specularMap"), 1);
+               hasSpec = true;
+           }
+        }
+        
+        shader.SetBool(hasSpec, "u_HasSpecularMap");
+        shader.SetBool(hasAlbedo, "u_HasTexture");
+        
         glBindVertexArray(meshComp->VAO);
         glDrawElements(GL_TRIANGLES, meshComp->indexCount, GL_UNSIGNED_INT, 0);
+        glBindVertexArray(0);
+
     }
 
     glBindVertexArray(0);
 }
+

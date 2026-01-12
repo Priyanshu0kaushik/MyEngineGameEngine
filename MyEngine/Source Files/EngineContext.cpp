@@ -58,7 +58,6 @@ EngineContext::EngineContext(int width, int height, const char* title)
     
     AssetManager::Allocate();
     AssetManager::Get().SetMessageQueue(m_MessageQueue);
-    AssetManager::Get().GetAsset("EngineAssets/Models/cube.obj");
 
     m_EditorContext = new EditorContext();
     m_EditorContext->Init(m_Window, this);
@@ -213,6 +212,7 @@ void EngineContext::ProcessMessages(){
 
 void EngineContext::Shutdown(){
     m_EditorContext->EndFrame();
+    AssetManager::Get().CleanUp();
     AssetManager::DeAllocate();
     Cleanup();
     glfwTerminate();

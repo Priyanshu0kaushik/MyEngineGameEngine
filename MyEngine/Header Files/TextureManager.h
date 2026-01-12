@@ -24,6 +24,7 @@ public:
     void RegisterTexture(const std::string& path, uint32_t iD);
     uint32_t CreateTexture(TextureData* textureData);
     
+    void CleanUp();
 private:
 
     std::unordered_map<uint32_t, TextureData*> m_Textures;

@@ -24,5 +24,5 @@ private:
 
     AssetHandle FolderIconData, FileIconData;
     std::filesystem::path m_CurrentDirectory;
-    std::vector<std::string> m_ignoredExtensions = { ".memesh"};
+    std::vector<std::string> m_ignoredExtensions = { ".memesh", ".DS_Store"};
 };

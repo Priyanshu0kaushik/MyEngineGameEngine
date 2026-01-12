@@ -14,7 +14,10 @@
 
 MeshManager::MeshManager()
 {
-    
+    Mesh* placeholderMesh = new Mesh();
+    LoadMesh("EngineAssets/Models/cube.obj", placeholderMesh);
+    m_placeHolderID = CreateMesh(placeholderMesh);
+    RegisterMesh("EngineAssets/Models/cube.obj", m_placeHolderID);
 }
 
 bool MeshManager::LoadMesh(const std::string& path, Mesh* target)
@@ -156,12 +159,15 @@ AssetHandle MeshManager::GetMesh(uint32_t meshID)
         
         else{
             auto it1 = m_Meshes.find(m_placeHolderID);
-            if(it1!= m_Meshes.end()) result.Data = it1->second;
+            if(it1!= m_Meshes.end()) {
+                result.Data = it1->second;
+            }
             else result.Data = nullptr;
         }
     }
     
     if(result.Data) result.Data->Type = AssetType::Mesh;
+    result.iD = meshID;
     result.IsReady = true;
     return result;
 }
@@ -299,5 +305,14 @@ bool MeshManager::LoadMeshBinary(const std::string &path, Mesh &outMesh)
 
     in.close();
     return true;
+}
+
+void MeshManager::CleanUp(){
+    for (auto& [id, data] : m_Meshes) {
+        if (data) {
+            delete data;
+        }
+    }
+    m_Meshes.clear();
 }
 
