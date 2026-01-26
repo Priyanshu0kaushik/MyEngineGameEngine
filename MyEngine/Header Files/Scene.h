@@ -13,7 +13,6 @@
 #include "ECSSystems/CameraSystem.h"
 
 class Shader;
-class Camera;
 class Scene{
 public:
     Scene(Coordinator& coordinator, std::shared_ptr<RenderSystem> rs, std::shared_ptr<CameraSystem> cs)
@@ -22,7 +21,6 @@ public:
     Entity AddEntity(char* aName);
     void RemoveEntity(Entity e);
 
-    void Render(Shader& aShader);
     void RenameEntity(Entity e, const char* newName);
 
 private:
@@ -30,7 +28,6 @@ private:
 
     Coordinator& m_Coordinator;
 
-    Camera* m_Camera;
     std::shared_ptr<RenderSystem> renderSystem;
     std::shared_ptr<CameraSystem> cameraSystem;
 };

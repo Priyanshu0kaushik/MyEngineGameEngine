@@ -137,3 +137,24 @@ void Shader::SetVec3(const std::string &name, const glm::vec3 &value) const {
 void Shader::SetFloat(const std::string &name, float value) const {
     glUniform1f(glGetUniformLocation(shaderProgram, name.c_str()), value);
 }
+
+void Shader::SetVec3Array(const std::string& name, const std::vector<glm::vec3>& values) const
+{
+    GLint location = glGetUniformLocation(shaderProgram, name.c_str());
+    glUniform3fv(location, (GLsizei)values.size(), glm::value_ptr(values[0]));
+}
+
+void Shader::SetInt(const std::string &name, int value) const{
+    glUniform1i(glGetUniformLocation(shaderProgram, name.c_str()), value);
+}
+
+void Shader::SetVec4(const std::string &name, const glm::vec4 &value) const
+{
+    glUniform4fv(glGetUniformLocation(shaderProgram, name.c_str()), 1, &value[0]);
+}
+
+void Shader::SetVec4Array(const std::string &name, const std::vector<glm::vec4> &values) const
+{
+    GLint location = glGetUniformLocation(shaderProgram, name.c_str());
+    glUniform4fv(location, (GLsizei)values.size(), glm::value_ptr(values[0]));
+}

@@ -19,6 +19,7 @@ private:
     void ShowCameraComponent();
     void ShowLoadAssetButton();
     void RenameRender();
+    void ShowLightComponent();
     void ShowMaterialSetting(Material& material);
     
     void DrawAssetSlot(const char* Name, std::string& path, uint32_t& iD);

@@ -48,7 +48,7 @@ struct TextureData : public BaseData{
 };
 
 struct Material{
-    glm::vec3 Ambient = { 0.1f, 0.1f, 0.1f };
+    glm::vec3 Ambient = { 1.0f, 1.0f, 1.0f };
     glm::vec3 Diffuse = { 1.0f, 1.0f, 1.0f };
     glm::vec3 Specular = { 0.5f, 0.5f, 0.5f };
     float Shininess = 32.0f;

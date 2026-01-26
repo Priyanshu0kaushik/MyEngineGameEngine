@@ -10,9 +10,12 @@
 #include "glfw3.h"
 #include "ECSSystems/RenderSystem.h"
 #include "ECSSystems/CameraSystem.h"
+#include "ECSSystems/LightSystem.h"
 #include "AssetData.h"
 #include "ECS/Coordinator.h"
 #include "MessageQueue.h"
+#include "ShaderManager.h"
+
 
 #include <queue>
 #include <memory>
@@ -24,11 +27,10 @@ class EditorContext;
 class EngineContext{
 public:
     EngineContext(int width, int height, const char* title);
-    void SetShader(Shader* aShader){ m_Shader = aShader;}
     Scene* GetScene(){return m_Scene;}
     GLFWwindow* GetWindow(){return m_Window;}
-    Shader* GetShader(){return m_Shader;}
     Coordinator* GetCoordinator(){return m_Coordinator;}
+    ShaderManager* GetShaderManager(){return m_ShaderManager;}
     void InitViewportFramebuffer(int width, int height);
     void Draw();
     void Shutdown();
@@ -36,6 +38,8 @@ public:
     int GetFPS(){ return (int)(1/m_DeltaTime);}
     void OnStartControlCam();
     void OnReleaseCamControl();
+    void InitShadowMap();
+    void InitGBuffer();
     
     void PushMessage(std::unique_ptr<Message> msg){
         m_MessageQueue->Push(std::move(msg));
@@ -60,16 +64,24 @@ private:
     Coordinator* m_Coordinator = nullptr;
     GLFWwindow* m_Window = nullptr;
     Scene* m_Scene = nullptr;
-    Shader* m_Shader = nullptr;
+    ShaderManager* m_ShaderManager = nullptr;
     EditorContext* m_EditorContext = nullptr;
     
     std::shared_ptr<MessageQueue> m_MessageQueue;
     std::shared_ptr<RenderSystem> renderSystem;
     std::shared_ptr<CameraSystem> cameraSystem;
+    std::shared_ptr<LightSystem> lightSystem;
     
     
     float m_ViewportWidth, m_ViewportHeight;
     unsigned int m_ViewportFBO, m_ViewportTexture, m_ViewportRBO;
+    
+    unsigned int m_DepthMapFBO, m_DepthMapTexture;
+    const unsigned int SHADOW_WIDTH = 2048, SHADOW_HEIGHT = 2048;
+    
+    unsigned int m_gBuffer, m_gDepthRBO;
+    unsigned int m_gPosition, m_gNormal, m_gAlbedoSpec;
+    
     bool bControllingCamera = false;
     
     float m_DeltaTime = 0.0f;

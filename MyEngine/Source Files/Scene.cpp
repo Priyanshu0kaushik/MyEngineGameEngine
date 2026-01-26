@@ -33,7 +33,6 @@ void Scene::RemoveEntity(Entity e)
 
 void Scene::RenameEntity(Entity e, const char* newName)
 {
-
     if(NameComponent* nameComponent = m_Coordinator.GetComponent<NameComponent>(e))
     {
         int count = NameExistCount(e, newName);
@@ -53,11 +52,6 @@ void Scene::RenameEntity(Entity e, const char* newName)
             else count++;
         }
     }
-
-}
-
-void Scene::Render(Shader& shader)
-{
 }
 
 int Scene::NameExistCount(Entity e, const char* aName){

@@ -9,6 +9,7 @@
 #include "AssetManager.h"
 #include <glm/gtc/type_ptr.hpp>
 #include "Scene.h"
+#include "ShaderManager.h"
 #include <filesystem>
 
 void InspectorPanel::Draw(EditorDrawContext &context)
@@ -24,6 +25,7 @@ void InspectorPanel::Draw(EditorDrawContext &context)
         ShowTransformComponent();
         ShowCameraComponent();
         ShowMeshComponent();
+        ShowLightComponent();
         ShowLoadAssetButton();
         
         if(ImGui::Button("Add Component"))
@@ -94,6 +96,40 @@ void InspectorPanel::ShowTransformComponent()
     ImGui::Separator();
 
 }
+
+void InspectorPanel::ShowLightComponent()
+{
+    LightComponent* light = m_Context.coordinator->GetComponent<LightComponent>(*m_Context.selectedEntity);
+    if (light) {
+        if (ImGui::TreeNodeEx((void*)typeid(LightComponent).hash_code(), ImGuiTreeNodeFlags_DefaultOpen, "Light Component")) {
+            
+            const char* lightTypes[] = { "Directional", "Point", "Spot" };
+            int currentType = (int)light->type;
+            if (ImGui::Combo("Light Type", &currentType, lightTypes, IM_ARRAYSIZE(lightTypes))) {
+                light->type = (LightType)currentType;
+            }
+
+            ImGui::Separator();
+
+            ImGui::ColorEdit3("Light Color", glm::value_ptr(light->color));
+            ImGui::DragFloat("Intensity", &light->intensity, 0.1f, 0.0f, 100.0f);
+
+            if (light->type != LightType::Directional) {
+                ImGui::Text("Attenuation Factors");
+                ImGui::DragFloat("Constant", &light->constant, 0.01f, 0.0f, 1.0f);
+                ImGui::DragFloat("Linear", &light->linear, 0.001f, 0.0f, 1.0f);
+                ImGui::DragFloat("Quadratic", &light->quadratic, 0.0001f, 0.0f, 1.0f);
+            }
+
+            if (light->type == LightType::Spot) {
+                ImGui::Text("Spotlight Settings");
+            }
+
+            ImGui::TreePop();
+        }
+    }
+}
+
 void InspectorPanel::ShowMeshComponent()
 {
     if(!m_Context.coordinator->GetComponent<MeshComponent>(*m_Context.selectedEntity)) return;
@@ -141,6 +177,9 @@ void InspectorPanel::ShowMeshComponent()
     
     ImGui::Separator();
     ShowMaterialSetting(mesh->material);
+    if(ImGui::Button("Reload Shader")){
+        m_Context.engine->GetShaderManager()->ReloadShaders();
+    }
     
     
 }
@@ -156,10 +195,6 @@ void InspectorPanel::ShowMaterialSetting(Material& material)
     UpdateAssetSlot(material.albedoPath, material.albedoID);
     UpdateAssetSlot(material.normalPath, material.normalID);
     UpdateAssetSlot(material.specPath, material.specID);
-    
-    if(ImGui::Button("Reload Shader")){
-        m_Context.engine->GetShader()->Reload();
-    }
     
     ImGui::Separator();
 

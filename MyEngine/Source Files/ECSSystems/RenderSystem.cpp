@@ -98,9 +98,6 @@ glm::mat4 RenderSystem::BuildModelMatrix(TransformComponent* t)
 
 void RenderSystem::Render(Shader& shader)
 {
-    shader.Use();
-//    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); 
-
     for (Entity e : mEntities)
     {
         TransformComponent* transform = m_Coordinator->GetComponent<TransformComponent>(e);

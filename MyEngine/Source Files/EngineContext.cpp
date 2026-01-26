@@ -26,13 +26,17 @@ EngineContext::EngineContext(int width, int height, const char* title)
     //GLFW Window
     InitWindow(width, height, title);
     InitViewportFramebuffer(500,500);
+    
+    InitShadowMap();
     //ImGUI
 
     TestProjectSetupInit();
     // Components
+    m_Coordinator->RegisterComponent<NameComponent>();
     m_Coordinator->RegisterComponent<TransformComponent>();
     m_Coordinator->RegisterComponent<MeshComponent>();
     m_Coordinator->RegisterComponent<CameraComponent>();
+    m_Coordinator->RegisterComponent<LightComponent>();
     
     // Systems
     renderSystem = m_Coordinator->RegisterSystem<RenderSystem>();
@@ -49,8 +53,17 @@ EngineContext::EngineContext(int width, int height, const char* title)
     CameraSignature.set(m_Coordinator->GetComponentType<CameraComponent>());
     m_Coordinator->SetSystemSignature<CameraSystem>(CameraSignature);
     
+    lightSystem = m_Coordinator->RegisterSystem<LightSystem>();
+    lightSystem->SetCoordinator(m_Coordinator);
+    Signature lightSignature;
+    lightSignature.set(m_Coordinator->GetComponentType<TransformComponent>());
+    lightSignature.set(m_Coordinator->GetComponentType<LightComponent>());
+    m_Coordinator->SetSystemSignature<LightSystem>(lightSignature);
+    
     renderSystem->Init();
     cameraSystem->Init();
+    lightSystem->Init();
+    
     
     m_Scene = new Scene(*m_Coordinator, renderSystem, cameraSystem);
 
@@ -61,7 +74,72 @@ EngineContext::EngineContext(int width, int height, const char* title)
 
     m_EditorContext = new EditorContext();
     m_EditorContext->Init(m_Window, this);
+    
+    m_ShaderManager = new ShaderManager();
+    m_ShaderManager->Init();
+}
 
+void EngineContext::InitShadowMap() {
+    glGenFramebuffers(1, &m_DepthMapFBO);
+
+    glGenTextures(1, &m_DepthMapTexture);
+    glBindTexture(GL_TEXTURE_2D, m_DepthMapTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, m_DepthMapFBO);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_DepthMapTexture, 0);
+    
+    glDrawBuffer(GL_NONE);
+    glReadBuffer(GL_NONE);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void EngineContext::InitGBuffer()
+{
+    glGenFramebuffers(1, &m_gBuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, m_gBuffer);
+    
+    glGenTextures(1, &m_gPosition);
+    glBindTexture(GL_TEXTURE_2D, m_gPosition);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, m_ViewportWidth, m_ViewportHeight, 0, GL_RGB, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_gPosition, 0);
+    
+    glGenTextures(1, &m_gAlbedoSpec);
+    glBindTexture(GL_TEXTURE_2D, m_gAlbedoSpec);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_ViewportWidth, m_ViewportHeight, 0, GL_RGB, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, m_gAlbedoSpec, 0);
+    
+    glGenTextures(1, &m_gNormal);
+    glBindTexture(GL_TEXTURE_2D, m_gNormal);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, m_ViewportWidth, m_ViewportHeight, 0, GL_RGB, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, m_gNormal, 0);
+    
+    unsigned int attachments[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
+    glDrawBuffers(3, attachments);
+
+    glGenRenderbuffers(1, &m_gDepthRBO);
+    glBindRenderbuffer(GL_RENDERBUFFER, m_gDepthRBO);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, m_ViewportWidth, m_ViewportHeight);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_gDepthRBO);
+
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        std::cout << "Framebuffer not complete!" << std::endl;
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void EngineContext::InitViewportFramebuffer(int width, int height){
@@ -95,6 +173,9 @@ void EngineContext::InitWindow(int width, int height, const char* title){
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
+    glfwWindowHint(GLFW_COCOA_RETINA_FRAMEBUFFER, GL_TRUE);
+    glfwWindowHint(GLFW_COCOA_GRAPHICS_SWITCHING, GL_TRUE);
+    glfwWindowHint(GLFW_FOCUS_ON_SHOW, GL_TRUE);
 
     m_Window = glfwCreateWindow(width, height, title, NULL, NULL);
     if (!m_Window)
@@ -154,6 +235,20 @@ void EngineContext::Draw(){
         m_DeltaTime = currentFrame - m_LastFrameTime;
         m_LastFrameTime = currentFrame;
         
+        Shader* shadowShader = m_ShaderManager->Get("ShadowMap");
+        if (shadowShader) {
+            shadowShader->Use();
+            glm::mat4 lightSpaceMatrix = lightSystem->GetLightSpaceMatrix();
+            shadowShader->SetMatrix4(lightSpaceMatrix, "shadowMapMatrix");
+
+            glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+            glBindFramebuffer(GL_FRAMEBUFFER, m_DepthMapFBO);
+            glClear(GL_DEPTH_BUFFER_BIT);
+
+            renderSystem->Render(*shadowShader);
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        }
+        
         m_EditorContext->BeginFrame();
 
         /* Render here */
@@ -163,15 +258,25 @@ void EngineContext::Draw(){
             
         ProcessMessages();
         cameraSystem->Update();
-        if(m_Shader) renderSystem->Render(*m_Shader);
+        
+        Shader* mainShader = m_ShaderManager->Get("Main");
+        if(mainShader){
+            mainShader->Use();
+            mainShader->SetMatrix4(cameraSystem->GetView(), "viewMatrix");
+            mainShader->SetMatrix4(cameraSystem->GetCameraProjection(), "projectionMatrix");
+
+            glm::mat4 lightSpaceMatrix = lightSystem->GetLightSpaceMatrix();
+            mainShader->SetMatrix4(lightSpaceMatrix, "shadowMapMatrix");
+            
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, m_DepthMapTexture);
+            mainShader->SetInt("shadowMap", 1);
+            
+            renderSystem->Render(*mainShader);
+            lightSystem->Render(*mainShader);
+        }
 
         if(bControllingCamera) cameraSystem->ProcessInput(m_Window, m_DeltaTime);
-        
-        if(m_Shader && cameraSystem){
-            m_Shader->Use();
-            m_Shader->SetMatrix4(cameraSystem->GetView(), "viewMatrix");
-            m_Shader->SetMatrix4(cameraSystem->GetCameraProjection(), "projectionMatrix");
-        }
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         
@@ -184,6 +289,7 @@ void EngineContext::Draw(){
 
 void EngineContext::Cleanup(){
     delete m_Scene;
+    delete m_ShaderManager;
     delete m_EditorContext;
     delete m_Coordinator;
 }

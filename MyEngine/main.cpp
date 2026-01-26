@@ -15,11 +15,11 @@ int main(void)
 
     EngineContext* engineContext = new EngineContext(1000,700,"MyEngine");
     
-    Shader* shader = new Shader("Shaders/VertexShader.glsl",
-                                "Shaders/FragmentShader.glsl");
-    
-
-    engineContext->SetShader(shader);
+//    Shader* shader = new Shader("Shaders/VertexShader.glsl",
+//                                "Shaders/FragmentShader.glsl");
+//    
+//
+//    engineContext->SetShader(shader);
     
     engineContext->Draw();
     engineContext->Shutdown();
