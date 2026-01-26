@@ -19,6 +19,7 @@ public:
     void SetMatrix4(glm::mat4 aMatrix, const std::string& aName) const;
     void SetBool(bool booleanToSet, const std::string& aName) const;
     void SetVec3(const std::string& name, const glm::vec3& value) const;
+    void SetVec3Array(const std::string& name, const std::vector<glm::vec3>& values) const;
     void SetVec4(const std::string& name, const glm::vec4& value) const;
     void SetVec4Array(const std::string& name, const std::vector<glm::vec4>& values) const;
     
