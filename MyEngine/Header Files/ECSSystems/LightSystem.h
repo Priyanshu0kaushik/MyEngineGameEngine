@@ -17,6 +17,7 @@ public:
     void Render(Shader& shader);
     void SetCoordinator(Coordinator* aCoordinator){m_Coordinator = aCoordinator;}
     glm::mat4 GetLightSpaceMatrix();
+    void UpdateUniforms(Shader* lightingShader);
 private:
     glm::vec3 m_LastDirectionalDir = glm::vec3(0.0f, -1.0f, 0.0f);
     Coordinator* m_Coordinator;

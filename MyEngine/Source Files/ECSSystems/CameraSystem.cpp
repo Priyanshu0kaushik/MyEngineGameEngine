@@ -43,6 +43,14 @@ void CameraSystem::LookAt(const glm::vec3& target, const glm::vec3& up){
     camera->Up = up;
 }
 
+glm::vec3 CameraSystem::GetCurrentCameraPosition() const
+{
+    if(m_MainCam==UINT32_MAX) return glm::vec3();
+    TransformComponent* transform = m_Coordinator->GetComponent<TransformComponent>(m_MainCam);
+    return transform->position;
+}
+
+
 glm::mat4 CameraSystem::GetView() const{
     if(m_MainCam==UINT32_MAX) return glm::mat4();
     TransformComponent* transform = m_Coordinator->GetComponent<TransformComponent>(m_MainCam);

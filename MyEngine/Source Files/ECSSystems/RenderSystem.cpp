@@ -106,7 +106,7 @@ void RenderSystem::Render(Shader& shader)
         UploadMeshIfNeeded(e, meshComp);
 
         glm::mat4 model = BuildModelMatrix(transform);
-        shader.SetMatrix4(model, "transformMatrix");
+        shader.SetMatrix4(model, "model");
         // set material settings
         shader.SetVec3("u_Material.ambient", meshComp->material.Ambient);
         shader.SetVec3("u_Material.diffuse", meshComp->material.Diffuse);
@@ -123,7 +123,7 @@ void RenderSystem::Render(Shader& shader)
                TextureData* albedoTex = static_cast<TextureData*>(albedoHandle.Data);
                glActiveTexture(GL_TEXTURE0);
                glBindTexture(GL_TEXTURE_2D, albedoTex->TextureObject);
-               glUniform1i(glGetUniformLocation(shader.shaderProgram, "mainTexture"), 0);
+               glUniform1i(glGetUniformLocation(shader.shaderProgram, "texture_diffuse"), 0);
                hasAlbedo = true;
            }
        }
@@ -135,7 +135,7 @@ void RenderSystem::Render(Shader& shader)
                TextureData* specTex = static_cast<TextureData*>(specHandle.Data);
                glActiveTexture(GL_TEXTURE1);
                glBindTexture(GL_TEXTURE_2D, specTex->TextureObject);
-               glUniform1i(glGetUniformLocation(shader.shaderProgram, "specularMap"), 1);
+               glUniform1i(glGetUniformLocation(shader.shaderProgram, "texture_specular"), 1);
                hasSpec = true;
            }
         }

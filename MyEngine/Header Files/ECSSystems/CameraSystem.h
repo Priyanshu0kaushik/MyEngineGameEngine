@@ -23,6 +23,8 @@ public:
     void LookAt(const glm::vec3& target, const glm::vec3& up);
     glm::mat4 GetView() const;
     
+    glm::vec3 GetCurrentCameraPosition() const;
+    
     void OnReleaseCamControl();
     void ProcessInput(GLFWwindow* aWindow, float aDeltaTime);
     void ProcessMouseScroll(double yoffset);
