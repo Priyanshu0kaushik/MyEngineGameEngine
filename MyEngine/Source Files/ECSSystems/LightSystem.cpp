@@ -28,7 +28,7 @@ void LightSystem::Render(Shader &shader){
     shader.SetVec4("u_Light_ambient", glm::vec4(0.2f, 0.2f, 0.2f, 1.0f));
     
     for (auto const& entity : mEntities) {
-        if (count >= 100) break;
+        if (count >= 10) break;
 
         auto* transform = m_Coordinator->GetComponent<TransformComponent>(entity);
         auto* light = m_Coordinator->GetComponent<LightComponent>(entity);

@@ -60,7 +60,6 @@ private:
     void SendMessage(std::unique_ptr<Message> msg);
     void InitWindow(int width, int height, const char* title);
     void Cleanup();
-    void RenderQuad();
 private:
     Coordinator* m_Coordinator = nullptr;
     GLFWwindow* m_Window = nullptr;
