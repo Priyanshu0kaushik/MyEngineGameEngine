@@ -31,7 +31,7 @@ void RenderSystem::UploadMeshIfNeeded(Entity e, MeshComponent* mc)
     if(mesh==nullptr) return;
     std::vector<float> gpuVertices;
     std::vector<uint32_t> gpuIndices;
-    gpuVertices.reserve(mesh->vertices.size() * 8);
+    gpuVertices.reserve(mesh->vertices.size() * 11);
     gpuIndices.reserve(mesh->faces.size() * 3);
 
     for (const auto& v : mesh->vertices)
@@ -46,6 +46,10 @@ void RenderSystem::UploadMeshIfNeeded(Entity e, MeshComponent* mc)
 
         gpuVertices.push_back(v.uv.x);
         gpuVertices.push_back(v.uv.y);
+        
+        gpuVertices.push_back(v.tangent.x);
+        gpuVertices.push_back(v.tangent.y);
+        gpuVertices.push_back(v.tangent.z);
     }
 
     for (const auto& face : mesh->faces)
@@ -70,14 +74,19 @@ void RenderSystem::UploadMeshIfNeeded(Entity e, MeshComponent* mc)
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mc->EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, gpuIndices.size() * sizeof(uint32_t), gpuIndices.data(), GL_STATIC_DRAW);
 
+    int stride = 11 * sizeof(float);
+    
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void*)0);
 
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, (void*)(3 * sizeof(float)));
 
     glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, stride, (void*)(6 * sizeof(float)));
+    
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, stride, (void*)(8 * sizeof(float)));
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
@@ -115,6 +124,8 @@ void RenderSystem::Render(Shader& shader)
         
         bool hasAlbedo = false;
         bool hasSpec = false;
+        bool hasNormal = false;
+        
         if (meshComp->material.albedoID != UINT32_MAX)
         {
            AssetHandle albedoHandle = AssetManager::Get().GetAsset(AssetType::Texture, meshComp->material.albedoID);
@@ -126,22 +137,34 @@ void RenderSystem::Render(Shader& shader)
                glUniform1i(glGetUniformLocation(shader.shaderProgram, "mainTexture"), 0);
                hasAlbedo = true;
            }
-       }
+        }
+        if (meshComp->material.normalID != UINT32_MAX)
+        {
+           AssetHandle normalHandle = AssetManager::Get().GetAsset(AssetType::Texture, meshComp->material.normalID);
+           if(normalHandle.IsReady && normalHandle.Data)
+           {
+               TextureData* normalTex = static_cast<TextureData*>(normalHandle.Data);
+               glActiveTexture(GL_TEXTURE1);
+               glBindTexture(GL_TEXTURE_2D, normalTex->TextureObject);
+               glUniform1i(glGetUniformLocation(shader.shaderProgram, "normalMap"), 1);
+               hasNormal = true;
+           }
+        }
         if (meshComp->material.specID != UINT32_MAX)
         {
            AssetHandle specHandle = AssetManager::Get().GetAsset(AssetType::Texture, meshComp->material.specID);
            if(specHandle.IsReady && specHandle.Data)
            {
                TextureData* specTex = static_cast<TextureData*>(specHandle.Data);
-               glActiveTexture(GL_TEXTURE1);
+               glActiveTexture(GL_TEXTURE2);
                glBindTexture(GL_TEXTURE_2D, specTex->TextureObject);
-               glUniform1i(glGetUniformLocation(shader.shaderProgram, "specularMap"), 1);
+               glUniform1i(glGetUniformLocation(shader.shaderProgram, "specularMap"), 2);
                hasSpec = true;
            }
         }
-        
         shader.SetBool(hasSpec, "u_HasSpecularMap");
         shader.SetBool(hasAlbedo, "u_HasTexture");
+        shader.SetBool(hasNormal, "u_HasNormalMap");
         
         glBindVertexArray(meshComp->VAO);
         glDrawElements(GL_TRIANGLES, meshComp->indexCount, GL_UNSIGNED_INT, 0);

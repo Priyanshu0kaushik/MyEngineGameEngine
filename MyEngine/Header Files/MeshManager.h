@@ -32,7 +32,7 @@ private:
     
     bool SaveMeshBinary(const std::string& path, const Mesh& mesh);
     bool LoadMeshBinary(const std::string& path, Mesh& outMesh);
-    
+    void CalculateTangents(Mesh& mesh);
 private:
 
     std::unordered_map<uint32_t, Mesh*> m_Meshes;

@@ -21,8 +21,10 @@ in vec3 FragPos;
 in vec3 Normal;
 in vec2 TexCoord;
 in vec4 FragPosShadowSpace;
+in mat3 TBN;
 
 uniform sampler2D mainTexture;
+uniform sampler2D normalMap;
 uniform sampler2D specularMap;
 uniform sampler2D shadowMap;
 
@@ -36,10 +38,11 @@ uniform vec3 u_Light_attenuation[MAX_LIGHTS];
 uniform Material u_Material;
 uniform bool u_HasTexture;
 uniform bool u_HasSpecularMap;
+uniform bool u_HasNormalMap;
 uniform vec3 eyePosition;
 
 
-float CalcShadowFactor(vec4 shadowSpace) {
+float CalcShadowFactor(vec4 shadowSpace, vec3 normal, vec3 lightDir) {
     vec3 projCoords = shadowSpace.xyz / shadowSpace.w;
     projCoords = projCoords * 0.5 + 0.5;
 
@@ -49,12 +52,20 @@ float CalcShadowFactor(vec4 shadowSpace) {
     float currentDepth = projCoords.z;
 
     float bias = 0.005;
+//    float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
     return (currentDepth - bias > shadowSample) ? 1.0 : 0.0;
 }
 
 void main()
 {
-    vec3 norm = normalize(Normal);
+    vec3 norm;
+    if(u_HasNormalMap) {
+        norm = texture(normalMap, TexCoord).rgb;
+        norm = normalize(norm * 2.0 - 1.0);
+        norm = normalize(TBN * norm);
+    } else {
+        norm = normalize(Normal);
+    }
     vec3 viewDir = normalize(eyePosition - FragPos);
     vec4 texColor = u_HasTexture ? texture(mainTexture, TexCoord) : vec4(1.0);
     vec4 specularTexel = u_HasSpecularMap ? texture(specularMap, TexCoord) : vec4(1.0);
@@ -62,7 +73,6 @@ void main()
     vec3 ambient = u_Material.ambient * u_Light_ambient.rgb * texColor.rgb;
     vec3 totalDiffuseSpecular = vec3(0.0);
 
-    float shadowFactor = CalcShadowFactor(FragPosShadowSpace);
 
     for(int i = 0; i < u_LightCount; i++)
     {
@@ -73,7 +83,7 @@ void main()
         if(u_Light_position[i].w == 0.0)
         {
             lightDir = normalize(-u_Light_position[i].xyz);
-            currentShadow = shadowFactor;
+            currentShadow = CalcShadowFactor(FragPosShadowSpace, norm, lightDir);;
         }
         else
         {
@@ -101,4 +111,5 @@ void main()
 
     vec3 result = ambient + totalDiffuseSpecular;
     FragColor = vec4(result, 1.0);
+    
 }

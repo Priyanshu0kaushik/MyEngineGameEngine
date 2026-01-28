@@ -102,46 +102,6 @@ void EngineContext::InitShadowMap() {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void EngineContext::InitGBuffer()
-{
-    glGenFramebuffers(1, &m_gBuffer);
-    glBindFramebuffer(GL_FRAMEBUFFER, m_gBuffer);
-    
-    glGenTextures(1, &m_gPosition);
-    glBindTexture(GL_TEXTURE_2D, m_gPosition);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, m_ViewportWidth, m_ViewportHeight, 0, GL_RGB, GL_FLOAT, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_gPosition, 0);
-    
-    glGenTextures(1, &m_gAlbedoSpec);
-    glBindTexture(GL_TEXTURE_2D, m_gAlbedoSpec);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_ViewportWidth, m_ViewportHeight, 0, GL_RGB, GL_FLOAT, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, m_gAlbedoSpec, 0);
-    
-    glGenTextures(1, &m_gNormal);
-    glBindTexture(GL_TEXTURE_2D, m_gNormal);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, m_ViewportWidth, m_ViewportHeight, 0, GL_RGB, GL_FLOAT, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, m_gNormal, 0);
-    
-    unsigned int attachments[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
-    glDrawBuffers(3, attachments);
-
-    glGenRenderbuffers(1, &m_gDepthRBO);
-    glBindRenderbuffer(GL_RENDERBUFFER, m_gDepthRBO);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, m_ViewportWidth, m_ViewportHeight);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_gDepthRBO);
-
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-        std::cout << "Framebuffer not complete!" << std::endl;
-
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-}
-
 void EngineContext::InitViewportFramebuffer(int width, int height){
     m_ViewportWidth = width;
     m_ViewportHeight = height;
@@ -268,9 +228,9 @@ void EngineContext::Draw(){
             glm::mat4 lightSpaceMatrix = lightSystem->GetLightSpaceMatrix();
             mainShader->SetMatrix4(lightSpaceMatrix, "shadowMapMatrix");
             
-            glActiveTexture(GL_TEXTURE1);
+            glActiveTexture(GL_TEXTURE3);
             glBindTexture(GL_TEXTURE_2D, m_DepthMapTexture);
-            mainShader->SetInt("shadowMap", 1);
+            mainShader->SetInt("shadowMap", 3);
             
             renderSystem->Render(*mainShader);
             lightSystem->Render(*mainShader);

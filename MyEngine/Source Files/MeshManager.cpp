@@ -125,6 +125,7 @@ bool MeshManager::LoadMesh(const std::string& path, Mesh* target)
         }
 
         file.close();
+        CalculateTangents(meshData);
         std::string binPath = path + ".memesh";
         SaveMeshBinary(binPath, meshData);
     }
@@ -316,3 +317,35 @@ void MeshManager::CleanUp(){
     m_Meshes.clear();
 }
 
+void MeshManager::CalculateTangents(Mesh& mesh)
+{
+    for (auto& v : mesh.vertices) {
+        v.tangent = glm::vec3(0.0f);
+    }
+
+    for (const auto& face : mesh.faces) {
+        Vertex& v1 = mesh.vertices[face.vertexIndices[0]];
+        Vertex& v2 = mesh.vertices[face.vertexIndices[1]];
+        Vertex& v3 = mesh.vertices[face.vertexIndices[2]];
+
+        glm::vec3 edge1 = v2.position - v1.position;
+        glm::vec3 edge2 = v3.position - v1.position;
+        glm::vec2 deltaUV1 = v2.uv - v1.uv;
+        glm::vec2 deltaUV2 = v3.uv - v1.uv;
+
+        float f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
+
+        glm::vec3 tangent;
+        tangent.x = f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
+        tangent.y = f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
+        tangent.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
+
+        v1.tangent += tangent;
+        v2.tangent += tangent;
+        v3.tangent += tangent;
+    }
+
+    for (auto& v : mesh.vertices) {
+        v.tangent = glm::normalize(v.tangent);
+    }
+}
