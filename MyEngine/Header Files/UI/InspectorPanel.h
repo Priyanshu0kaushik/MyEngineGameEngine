@@ -22,8 +22,18 @@ private:
     void ShowLightComponent();
     void ShowMaterialSetting(Material& material);
     
-    void DrawAssetSlot(const char* Name, std::string& path, uint32_t& iD);
-    void UpdateAssetSlot(std::string& path, uint32_t& id);
+    void DrawAssetSlot(const char* Name, std::string& path, uint32_t& iD, AssetType Type);
+    bool UpdateAssetSlot(std::string& path, uint32_t& id);
+    
+    template<typename T>
+    void RemoveComponentButton()
+    {
+        if(ImGui::Button("Remove Component"))
+        {
+            m_Context.coordinator->RemoveComponent<T>(*m_Context.selectedEntity);
+        }
+        
+    }
 private:
     EditorDrawContext m_Context;
 };

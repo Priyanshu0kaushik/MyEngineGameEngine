@@ -123,7 +123,6 @@ bool MeshManager::LoadMesh(const std::string& path, Mesh* target)
                 }
             }
         }
-
         file.close();
         CalculateTangents(meshData);
         std::string binPath = path + ".memesh";
@@ -167,7 +166,10 @@ AssetHandle MeshManager::GetMesh(uint32_t meshID)
         }
     }
     
-    if(result.Data) result.Data->Type = AssetType::Mesh;
+    if(result.Data != nullptr){
+        result.Data->Type = AssetType::Mesh;
+        result.Data->IsLoaded = true;
+    }
     result.iD = meshID;
     result.IsReady = true;
     return result;

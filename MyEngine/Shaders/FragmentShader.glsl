@@ -52,7 +52,7 @@ float CalcShadowFactor(vec4 shadowSpace, vec3 normal, vec3 lightDir) {
     float currentDepth = projCoords.z;
 
     float bias = 0.005;
-//    float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
+
     return (currentDepth - bias > shadowSample) ? 1.0 : 0.0;
 }
 

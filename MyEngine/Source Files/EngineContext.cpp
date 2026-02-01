@@ -214,6 +214,7 @@ void EngineContext::Draw(){
         /* Render here */
         glBindFramebuffer(GL_FRAMEBUFFER, m_ViewportFBO);
         glViewport(0, 0, m_ViewportWidth, m_ViewportHeight);
+        glClearColor(0.5f, 0.7f, 0.9f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             
         ProcessMessages();
@@ -272,7 +273,6 @@ void EngineContext::ProcessMessages(){
     auto msg = m_MessageQueue->Pop();
     while(msg!=nullptr){
         SendMessage(std::move(msg));
-        msg = m_MessageQueue->Pop();
     }
 }
 

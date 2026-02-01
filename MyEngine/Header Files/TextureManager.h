@@ -24,6 +24,8 @@ public:
     void RegisterTexture(const std::string& path, uint32_t iD);
     uint32_t CreateTexture(TextureData* textureData);
     
+    void SetMipMapSettings(uint32_t textureId, int mode);
+    
     void CleanUp();
 private:
 

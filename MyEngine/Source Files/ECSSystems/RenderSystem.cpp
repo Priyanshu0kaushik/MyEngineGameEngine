@@ -22,11 +22,13 @@ void RenderSystem::Init()
 
 void RenderSystem::UploadMeshIfNeeded(Entity e, MeshComponent* mc)
 {
-    if (mc->uploaded) return;
+    if (mc->uploaded || mc->meshID == UINT32_MAX) return;
     
-    AssetHandle handle = AssetManager::Get().GetMeshManager().GetMesh(mc->meshID);
-    if(!handle.IsReady || !handle.Data) return;
+    AssetHandle handle = AssetManager::Get().GetAsset(AssetType::Mesh, mc->meshID);
+    if(!handle.IsReady || handle.Data == nullptr) return;
     if(handle.Data->Type != AssetType::Mesh) return;
+    if(!handle.Data->IsLoaded) return;
+    
     Mesh* mesh = static_cast<Mesh*>(handle.Data);
     if(mesh==nullptr) return;
     std::vector<float> gpuVertices;

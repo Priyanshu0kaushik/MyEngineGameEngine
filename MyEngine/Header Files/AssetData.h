@@ -64,7 +64,7 @@ struct Material{
 };
 
 struct AssetHandle{
-    BaseData* Data;
+    BaseData* Data = nullptr;
     uint32_t iD = UINT32_MAX;
     bool IsReady = false;
 };

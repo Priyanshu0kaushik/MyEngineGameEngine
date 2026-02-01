@@ -26,6 +26,11 @@ void InspectorPanel::Draw(EditorDrawContext &context)
         ShowCameraComponent();
         ShowMeshComponent();
         ShowLightComponent();
+
+        if(ImGui::Button("Reload Shader")){
+            m_Context.engine->GetShaderManager()->ReloadShaders();
+        }
+        
         ShowLoadAssetButton();
         
         if(ImGui::Button("Add Component"))
@@ -127,6 +132,9 @@ void InspectorPanel::ShowLightComponent()
 
             ImGui::TreePop();
         }
+        RemoveComponentButton<LightComponent>();
+        ImGui::Separator();
+
     }
 }
 
@@ -137,50 +145,29 @@ void InspectorPanel::ShowMeshComponent()
     MeshComponent* mesh = m_Context.coordinator->GetComponent<MeshComponent>(*m_Context.selectedEntity);
     ImGui::SeparatorText("Mesh Component");
 
-    auto& allMeshes = AssetManager::Get().GetMeshManager().GetAllMeshes();
-
-    std::string currentMeshName = "Unknown";
     
-    for (auto& [path, id] : allMeshes)
-    {
-        if (id == mesh->meshID)
-        {
-            currentMeshName = path;
-            break;
-        }
-    }
-
-    ImGui::Text("Current Mesh:");
-    ImGui::TextWrapped("%s", currentMeshName.c_str());
-
-    ImGui::Spacing();
-    ImGui::TextWrapped("Change Mesh");
-    if (ImGui::BeginCombo("###Change Mesh", currentMeshName.c_str()))
-    {
-        for (auto& [path, id] : allMeshes)
-        {
-            bool isSelected = (id == mesh->meshID);
-            if (ImGui::Selectable(path.c_str(), isSelected))
-            {
-                mesh->meshID = id;
-                mesh->uploaded = false;
-            }
-
-            if (isSelected)
-                ImGui::SetItemDefaultFocus();
-        }
-        ImGui::EndCombo();
-    }
-    
+    DrawAssetSlot("Mesh",mesh->meshPath , mesh->meshID, AssetType::Mesh);
+    bool MeshLoaded = UpdateAssetSlot(mesh->meshPath, mesh->meshID);
+    if(MeshLoaded) mesh->uploaded = false;
     
     
     
     ImGui::Separator();
     ShowMaterialSetting(mesh->material);
-    if(ImGui::Button("Reload Shader")){
-        m_Context.engine->GetShaderManager()->ReloadShaders();
+    
+    const char* mipmapModes[] = { "Nearest", "Linear", "Trilinear (Mipmaps)" };
+    static int currentMode = 2;
+    
+    ImGui::Text("MipMap Settings");
+
+    if (ImGui::Combo("###MipMapMode", &currentMode, mipmapModes, IM_ARRAYSIZE(mipmapModes))) {
+        if(mesh->material.albedoID != UINT32_MAX) {
+            AssetManager::Get().GetTextureManager().SetMipMapSettings(mesh->material.albedoID, currentMode);
+        }
     }
     
+    RemoveComponentButton<MeshComponent>();
+    ImGui::Separator();
     
 }
 
@@ -188,9 +175,9 @@ void InspectorPanel::ShowMaterialSetting(Material& material)
 {
     auto& Textures = AssetManager::Get().GetTextureManager().GetAllTextures();
 
-    DrawAssetSlot("Main Texture", material.albedoPath, material.albedoID);
-    DrawAssetSlot("Normal Map", material.normalPath, material.normalID);
-    DrawAssetSlot("Specular Map", material.specPath, material.specID);
+    DrawAssetSlot("Main Texture", material.albedoPath, material.albedoID, AssetType::Texture);
+    DrawAssetSlot("Normal Map", material.normalPath, material.normalID, AssetType::Texture);
+    DrawAssetSlot("Specular Map", material.specPath, material.specID, AssetType::Texture);
     
     UpdateAssetSlot(material.albedoPath, material.albedoID);
     UpdateAssetSlot(material.normalPath, material.normalID);
@@ -208,28 +195,38 @@ void InspectorPanel::ShowMaterialSetting(Material& material)
     
 }
 
-void InspectorPanel::DrawAssetSlot(const char* Name, std::string &path, uint32_t &iD)
+void InspectorPanel::DrawAssetSlot(const char* Name, std::string &path, uint32_t &iD, AssetType Type)
 {
     ImGui::PushID(Name);
-    std::string currentTextureName = !path.empty()? path : "Unknown";
     
     ImGui::TextWrapped("%s", Name);
 
     ImGui::Spacing();
-    ImGui::TextWrapped("Change Texture");
-
+    
     uint32_t openGLHandle = 0;
-    if (iD != UINT32_MAX) {
-        AssetHandle handle = AssetManager::Get().GetTextureManager().GetTexture(iD);
-        if (handle.IsReady && handle.Data) {
-            TextureData* texData = static_cast<TextureData*>(handle.Data);
-            openGLHandle = texData->TextureObject;
-        }
+    switch(Type){
+        case AssetType::Mesh:
+            ImGui::TextWrapped("Change Mesh");
+            break;
+        case AssetType::Texture:
+            ImGui::TextWrapped("Change Texture");
+            if (iD != UINT32_MAX) {
+                AssetHandle handle = AssetManager::Get().GetTextureManager().GetTexture(iD);
+                if (handle.IsReady && handle.Data) {
+                    TextureData* texData = static_cast<TextureData*>(handle.Data);
+                    openGLHandle = texData->TextureObject;
+                }
+            }
+            break;
+        default:
+            ImGui::TextWrapped("Change Asset");
     }
-    if (iD != UINT32_MAX) {
-        ImGui::Image((ImTextureID)(uintptr_t)openGLHandle, ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0));
+
+    if (Type == AssetType::Texture) {
+        if(iD != UINT32_MAX) ImGui::Image((ImTextureID)(uintptr_t)openGLHandle, ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0));
+        else ImGui::Button(path.empty() ? "Empty" : "Texture", ImVec2(64, 64));
     } else {
-        ImGui::Button(path.empty() ? "Empty" : "Loading...", ImVec2(64, 64));
+        ImGui::Button(path.empty() ? "Empty" : "Mesh", ImVec2(64, 64));
     }
 
     if (ImGui::BeginDragDropTarget()) {
@@ -249,14 +246,17 @@ void InspectorPanel::DrawAssetSlot(const char* Name, std::string &path, uint32_t
     
 }
 
-void InspectorPanel::UpdateAssetSlot(std::string &path, uint32_t &id)
+bool InspectorPanel::UpdateAssetSlot(std::string &path, uint32_t &id)
 {
     if (!path.empty() && id == UINT32_MAX) {
         AssetHandle handle = AssetManager::Get().GetAsset(path);
-        if (handle.IsReady) {
+        if (handle.IsReady && handle.iD != UINT32_MAX) {
+            std::cout<<handle.iD<<std::endl;
             id = handle.iD;
+            return true;
         }
     }
+    return false;
 }
 
 void InspectorPanel::ShowCameraComponent()

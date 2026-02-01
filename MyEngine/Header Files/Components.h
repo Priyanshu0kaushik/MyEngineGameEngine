@@ -40,6 +40,8 @@ struct MeshComponent
     int indexCount = 0;
     bool uploaded = false;
     
+    std::string meshPath  = "";
+
     static constexpr const char* TypeName = "Mesh Component";
     static constexpr const bool UniquePerEntity = true;
 };

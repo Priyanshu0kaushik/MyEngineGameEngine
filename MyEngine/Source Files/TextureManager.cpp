@@ -86,6 +86,21 @@ void TextureManager::RegisterTexture(const std::string &path, uint32_t iD){
     m_PathToID[path] = iD;
 }
 
+void TextureManager::SetMipMapSettings(uint32_t textureId, int mode) {
+    auto it = m_Textures.find(textureId);
+    if (it != m_Textures.end() && it->second->IsLoaded) {
+        glBindTexture(GL_TEXTURE_2D, it->second->TextureObject);
+        
+        if (mode == 0) {
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        } else if (mode == 1) {
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        } else if (mode == 2) {
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        }
+    }
+}
+
 void TextureManager::CleanUp(){
     for (auto& [id, data] : m_Textures) {
         if (data) {
