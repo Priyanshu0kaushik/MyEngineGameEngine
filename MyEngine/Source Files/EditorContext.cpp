@@ -10,6 +10,7 @@
 #include "MessageQueue.h"
 #include "Scene.h"
 #include "imgui.h"
+#include <glm/gtc/type_ptr.hpp>
 #include "GLAD/include/glad/glad.h"
 #include "glfw3.h"
 #include "MeshManager.h"
@@ -19,6 +20,8 @@
 #include "UI/HierarchyPanel.h"
 #include "UI/InspectorPanel.h"
 #include "UI/ContentBrowserPanel.h"
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/euler_angles.hpp>
 #include <iostream>
 #include <string>
 
@@ -136,6 +139,7 @@ void EditorContext::Render(){
     }
 }
 
+
 void EditorContext::EndFrame(){
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
@@ -145,12 +149,24 @@ void EditorContext::EndFrame(){
 void EditorContext::ShowViewport(){
     ImGui::Begin("Viewport");
 
-    ImVec2 size = ImGui::GetContentRegionAvail();
-    ImGui::Image((void*)(intptr_t)m_EngineContext->GetViewportTexture(), size, ImVec2(0,1), ImVec2(1,0));
+
+    ImVec2 viewportMin = ImGui::GetCursorScreenPos();
+    ImVec2 viewportSize = ImGui::GetContentRegionAvail();
+
+    ImGui::Image((void*)(intptr_t)m_EngineContext->GetViewportTexture(), viewportSize, ImVec2(0,1), ImVec2(1,0));
+
+    if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+        ImGui::SetWindowFocus();
+    }
     
+    DrawGizmos(viewportMin, viewportSize);
+
+    
+    if (!bCameraCapturing) ProcessGizmosInput();
+
     bool viewportFocused = ImGui::IsWindowHovered();
     bool rightMouseDown = ImGui::IsMouseDown(ImGuiMouseButton_Right);
-
+    
     if (!bCameraCapturing && viewportFocused && rightMouseDown) {
         bCameraCapturing = true;
         m_EngineContext->OnStartControlCam();
@@ -162,7 +178,6 @@ void EditorContext::ShowViewport(){
         m_EngineContext->OnReleaseCamControl();
         glfwSetInputMode(m_EngineContext->GetWindow(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     }
-
     DisplayFPS();
     ImGui::End();
 }
@@ -184,4 +199,70 @@ void EditorContext::DisplayFPS(){
     );
 
     drawList->AddText(pos, IM_COL32(255, 255, 255, 255), text.c_str());
+}
+
+void EditorContext::ProcessGizmosInput(){
+    if (!ImGui::IsAnyItemActive()) {
+        if (ImGui::IsKeyPressed(ImGuiKey_W))
+            m_CurrentGizmoOperation = ImGuizmo::TRANSLATE;
+        if (ImGui::IsKeyPressed(ImGuiKey_E))
+            m_CurrentGizmoOperation = ImGuizmo::ROTATE;
+        if (ImGui::IsKeyPressed(ImGuiKey_R))
+            m_CurrentGizmoOperation = ImGuizmo::SCALE;
+    }
+}
+
+void EditorContext::DrawGizmos(ImVec2 pos, ImVec2 size) {
+    if(m_SelectedEntity == UINT32_MAX) return;
+    
+    ImGuiIO& io = ImGui::GetIO();
+    if (io.MousePos.x < -1e30f || io.MousePos.y < -1e30f) return;
+    ImGuizmo::BeginFrame();
+    
+    ImGuizmo::SetOrthographic(false);
+    
+    ImGuizmo::SetDrawlist(ImGui::GetWindowDrawList());
+    ImGuizmo::SetRect(pos.x, pos.y, size.x, size.y);
+
+    ImGuizmo::AllowAxisFlip(true);
+
+    const glm::mat4& cameraView = m_EngineContext->GetCameraSystem()->GetView();
+    const glm::mat4& cameraProj = m_EngineContext->GetCameraSystem()->GetCameraProjection();
+
+    TransformComponent* tc = m_Coordinator->GetComponent<TransformComponent>(m_SelectedEntity);
+
+    glm::mat4 rotationM = glm::eulerAngleYXZ(glm::radians(tc->rotation.y),
+                                             glm::radians(tc->rotation.x),
+                                             glm::radians(tc->rotation.z));
+
+    glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), tc->position) * rotationM * glm::scale(glm::mat4(1.0f), tc->scale);
+    glm::mat4 deltaMatrix = glm::mat4(1.0f);
+
+    ImGuizmo::Manipulate(glm::value_ptr(cameraView), glm::value_ptr(cameraProj),
+                         m_CurrentGizmoOperation, ImGuizmo::WORLD,
+                         glm::value_ptr(modelMatrix), glm::value_ptr(deltaMatrix));
+    
+    if (ImGuizmo::IsUsing()) {
+        float dTr[3], dRo[3], dSc[3];
+        ImGuizmo::DecomposeMatrixToComponents(glm::value_ptr(deltaMatrix), dTr, dRo, dSc);
+
+        if (m_CurrentGizmoOperation == ImGuizmo::TRANSLATE) {
+            tc->position += glm::vec3(dTr[0], dTr[1], dTr[2]);
+        }
+        
+        if (m_CurrentGizmoOperation == ImGuizmo::ROTATE) {
+            tc->rotation += glm::vec3(dRo[0], dRo[1], dRo[2]);
+            tc->rotation.x = fmod(tc->rotation.x, 360.0f);
+            tc->rotation.y = fmod(tc->rotation.y, 360.0f);
+            tc->rotation.z = fmod(tc->rotation.z, 360.0f);
+
+            if (tc->rotation.x < 0) tc->rotation.x += 360.0f;
+            if (tc->rotation.y < 0) tc->rotation.y += 360.0f;
+            if (tc->rotation.z < 0) tc->rotation.z += 360.0f;
+        }
+        
+        if (m_CurrentGizmoOperation == ImGuizmo::SCALE) {
+            tc->scale *= glm::vec3(dSc[0], dSc[1], dSc[2]);
+        }
+    }
 }

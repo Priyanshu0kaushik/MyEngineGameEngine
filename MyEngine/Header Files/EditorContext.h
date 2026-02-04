@@ -8,6 +8,7 @@
 #pragma once
 #include "imgui.h"
 #include "ECS/Coordinator.h"
+#include "ImGuizmo.h"
 #include "UI/UIPanel.h"
 
 class GLFWwindow;
@@ -21,8 +22,12 @@ public:
     void BeginFrame();
     void EndFrame();
     void Render();
+    void SetGizmosOperation(ImGuizmo::OPERATION newGizmoOperation);
+    
 private:
+    void ProcessGizmosInput();
     void ShowViewport();
+    void DrawGizmos(ImVec2 pos, ImVec2 size);
     void DisplayFPS();
 private:
     ImGuiIO* io;
@@ -30,6 +35,7 @@ private:
     Entity m_SelectedEntity;
     Coordinator* m_Coordinator;
     
+    ImGuizmo::OPERATION m_CurrentGizmoOperation = ImGuizmo::TRANSLATE;
     std::vector<UIPanel*> UIPanels;
     
     bool bCameraCapturing = false;

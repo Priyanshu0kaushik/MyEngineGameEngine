@@ -25,7 +25,7 @@ EngineContext::EngineContext(int width, int height, const char* title)
 
     //GLFW Window
     InitWindow(width, height, title);
-    InitViewportFramebuffer(500,500);
+    InitViewportFramebuffer(2048,2048);
     
     InitShadowMap();
     //ImGUI
@@ -213,6 +213,7 @@ void EngineContext::Draw(){
 
         /* Render here */
         glBindFramebuffer(GL_FRAMEBUFFER, m_ViewportFBO);
+        
         glViewport(0, 0, m_ViewportWidth, m_ViewportHeight);
         glClearColor(0.5f, 0.7f, 0.9f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -238,7 +239,7 @@ void EngineContext::Draw(){
         }
 
         if(bControllingCamera) cameraSystem->ProcessInput(m_Window, m_DeltaTime);
-
+        
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         
         // ImGUI

@@ -47,13 +47,25 @@ float CalcShadowFactor(vec4 shadowSpace, vec3 normal, vec3 lightDir) {
     projCoords = projCoords * 0.5 + 0.5;
 
     if(projCoords.z > 1.0) return 0.0;
-
-    float shadowSample = texture(shadowMap, projCoords.xy).r;
+    
     float currentDepth = projCoords.z;
 
-    float bias = 0.005;
-
-    return (currentDepth - bias > shadowSample) ? 1.0 : 0.0;
+    float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
+    
+    float shadow = 0.0;
+    vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
+    
+    for(int x = -2; x <= 2; ++x)
+    {
+        for(int y = -2; y <= 2; ++y)
+        {
+            float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
+            shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0;
+        }
+    }
+    
+    shadow /= 25.0;
+    return shadow;
 }
 
 void main()

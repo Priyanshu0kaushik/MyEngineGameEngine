@@ -20,6 +20,12 @@
 #include <queue>
 #include <memory>
 
+
+enum class EngineState {
+    Edit,
+    Play
+};
+
 class Scene;
 class Shader;
 class EditorContext;
@@ -31,6 +37,7 @@ public:
     GLFWwindow* GetWindow(){return m_Window;}
     Coordinator* GetCoordinator(){return m_Coordinator;}
     ShaderManager* GetShaderManager(){return m_ShaderManager;}
+    std::shared_ptr<CameraSystem> GetCameraSystem(){ return cameraSystem;}
     void InitViewportFramebuffer(int width, int height);
     void Draw();
     void Shutdown();
@@ -40,6 +47,9 @@ public:
     void OnReleaseCamControl();
     void InitShadowMap();
     void InitGBuffer();
+    
+    EngineState GetState() { return m_State; }
+    void SetState(EngineState state);
     
     void PushMessage(std::unique_ptr<Message> msg){
         m_MessageQueue->Push(std::move(msg));
@@ -61,6 +71,8 @@ private:
     void InitWindow(int width, int height, const char* title);
     void Cleanup();
 private:
+    EngineState m_State = EngineState::Edit;
+
     Coordinator* m_Coordinator = nullptr;
     GLFWwindow* m_Window = nullptr;
     Scene* m_Scene = nullptr;
