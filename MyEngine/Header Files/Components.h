@@ -9,6 +9,7 @@
 #include <glm/glm.hpp>
 #include <memory>
 #include "AssetData.h"
+#include "AssetManager.h"
 
 
 struct TransformComponent
@@ -34,12 +35,7 @@ struct MeshComponent
 {
     Material material;
     uint32_t meshID = UINT32_MAX;
-    unsigned int VAO = 0;
-    unsigned int VBO = 0;
-    unsigned int EBO = 0;
-    int indexCount = 0;
-    bool uploaded = false;
-    
+
     std::string meshPath  = "";
 
     static constexpr const char* TypeName = "Mesh Component";

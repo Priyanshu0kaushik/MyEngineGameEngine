@@ -22,8 +22,7 @@ void RenderSystem::Init()
 
 void RenderSystem::UploadMeshIfNeeded(Entity e, MeshComponent* mc)
 {
-    if (mc->uploaded || mc->meshID == UINT32_MAX) return;
-    
+    if (mc->meshID == UINT32_MAX) return;
     AssetHandle handle = AssetManager::Get().GetAsset(AssetType::Mesh, mc->meshID);
     if(!handle.IsReady || handle.Data == nullptr) return;
     if(handle.Data->Type != AssetType::Mesh) return;
@@ -31,6 +30,8 @@ void RenderSystem::UploadMeshIfNeeded(Entity e, MeshComponent* mc)
     
     Mesh* mesh = static_cast<Mesh*>(handle.Data);
     if(mesh==nullptr) return;
+    if(mesh->uploaded) return;
+    
     std::vector<float> gpuVertices;
     std::vector<uint32_t> gpuIndices;
     gpuVertices.reserve(mesh->vertices.size() * 11);
@@ -60,20 +61,20 @@ void RenderSystem::UploadMeshIfNeeded(Entity e, MeshComponent* mc)
             gpuIndices.push_back(index);
     }
 
-    mc->indexCount = static_cast<int>(gpuIndices.size());
+    mesh->indexCount = static_cast<int>(gpuIndices.size());
     int verticesSize = static_cast<int>(gpuVertices.size());
 
-    std::cout<<"Indices + vertices : "<<mc->indexCount + verticesSize <<std::endl;
-    glGenVertexArrays(1, &mc->VAO);
-    glGenBuffers(1, &mc->VBO);
-    glGenBuffers(1, &mc->EBO);
+    std::cout<<"Indices + vertices : "<<mesh->indexCount + verticesSize <<std::endl;
+    glGenVertexArrays(1, &mesh->VAO);
+    glGenBuffers(1, &mesh->VBO);
+    glGenBuffers(1, &mesh->EBO);
 
-    glBindVertexArray(mc->VAO);
+    glBindVertexArray(mesh->VAO);
 
-    glBindBuffer(GL_ARRAY_BUFFER, mc->VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, mesh->VBO);
     glBufferData(GL_ARRAY_BUFFER, gpuVertices.size() * sizeof(float), gpuVertices.data(), GL_STATIC_DRAW);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mc->EBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, gpuIndices.size() * sizeof(uint32_t), gpuIndices.data(), GL_STATIC_DRAW);
 
     int stride = 11 * sizeof(float);
@@ -93,7 +94,7 @@ void RenderSystem::UploadMeshIfNeeded(Entity e, MeshComponent* mc)
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
-    mc->uploaded = true;
+    mesh->uploaded = true;
 }
 
 glm::mat4 RenderSystem::BuildModelMatrix(TransformComponent* t)
@@ -168,10 +169,13 @@ void RenderSystem::Render(Shader& shader)
         shader.SetBool(hasAlbedo, "u_HasTexture");
         shader.SetBool(hasNormal, "u_HasNormalMap");
         
-        glBindVertexArray(meshComp->VAO);
-        glDrawElements(GL_TRIANGLES, meshComp->indexCount, GL_UNSIGNED_INT, 0);
-        glBindVertexArray(0);
-
+        Mesh* mesh = static_cast<Mesh*>(AssetManager::Get().GetAsset(AssetType::Mesh, meshComp->meshID).Data);
+        if (mesh && mesh->uploaded)
+        {
+            glBindVertexArray(mesh->VAO);
+            glDrawElements(GL_TRIANGLES, mesh->indexCount, GL_UNSIGNED_INT, 0);
+            glBindVertexArray(0);
+        }
     }
 
     glBindVertexArray(0);

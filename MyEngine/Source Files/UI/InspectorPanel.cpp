@@ -148,7 +148,10 @@ void InspectorPanel::ShowMeshComponent()
     
     DrawAssetSlot("Mesh",mesh->meshPath , mesh->meshID, AssetType::Mesh);
     bool MeshLoaded = UpdateAssetSlot(mesh->meshPath, mesh->meshID);
-    if(MeshLoaded) mesh->uploaded = false;
+    
+    Mesh* meshData = static_cast<Mesh*>(AssetManager::Get().GetAsset(AssetType::Mesh, mesh->meshID).Data);
+
+    if(MeshLoaded && meshData) meshData->uploaded = false;
     
     
     
@@ -232,6 +235,10 @@ void InspectorPanel::DrawAssetSlot(const char* Name, std::string &path, uint32_t
     if (ImGui::BeginDragDropTarget()) {
         if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM")) {
             const char* assetPath = (const char*)payload->Data;
+            if (!path.empty() && path != assetPath)
+            {
+                 AssetManager::Get().RemoveAssetReference(path, Type);
+            }
             
             path = assetPath;
             iD = UINT32_MAX;
@@ -253,6 +260,8 @@ bool InspectorPanel::UpdateAssetSlot(std::string &path, uint32_t &id)
         if (handle.IsReady && handle.iD != UINT32_MAX) {
             std::cout<<handle.iD<<std::endl;
             id = handle.iD;
+            AssetType type = AssetManager::Get().GetAssetTypeFromExtension(path);
+            AssetManager::Get().AddAssetReference(path, type);
             return true;
         }
     }
@@ -335,3 +344,8 @@ void InspectorPanel::ShowLoadAssetButton()
 
     if(pathEntered) AssetManager::Get().GetAsset(m_AssetPath);
 }
+
+void InspectorPanel::RemoveReference(const std::string &path, AssetType type) { 
+    AssetManager::Get().RemoveAssetReference(path, type);
+}
+

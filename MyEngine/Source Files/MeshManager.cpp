@@ -11,6 +11,8 @@
 #include <iostream>
 #include <sys/sysctl.h>
 #include <mach/mach.h>
+#include "GLAD/include/glad/glad.h"
+
 
 MeshManager::MeshManager()
 {
@@ -310,6 +312,33 @@ bool MeshManager::LoadMeshBinary(const std::string &path, Mesh &outMesh)
     return true;
 }
 
+void MeshManager::RemoveReference(const std::string& path)
+{
+    auto it = m_PathToID.find(path);
+    uint32_t iD = it != m_PathToID.end()? it->second : UINT32_MAX;
+    if(iD == UINT32_MAX || iD == m_placeHolderID) return;
+    
+    if (--m_MeshRefCount[iD] > 0) return;
+    Mesh* meshData = m_Meshes[iD];
+    if (meshData) {
+        if (meshData->VAO != 0) glDeleteVertexArrays(1, &meshData->VAO);
+        if (meshData->VBO != 0) glDeleteBuffers(1, &meshData->VBO);
+        if (meshData->EBO != 0) glDeleteBuffers(1, &meshData->EBO);
+
+        std::cout<<"Mesh Unloaded"<<std::endl;
+        meshData->vertices.clear();
+        meshData->vertices.shrink_to_fit();
+        meshData->faces.clear();
+        meshData->faces.shrink_to_fit();
+        delete meshData;
+    }
+
+    m_Meshes.erase(iD);
+    m_MeshRefCount.erase(iD);
+    m_PathToID.erase(path);
+    
+}
+
 void MeshManager::CleanUp(){
     for (auto& [id, data] : m_Meshes) {
         if (data) {
@@ -317,6 +346,8 @@ void MeshManager::CleanUp(){
         }
     }
     m_Meshes.clear();
+    m_MeshRefCount.clear();
+    m_PathToID.clear();
 }
 
 void MeshManager::CalculateTangents(Mesh& mesh)

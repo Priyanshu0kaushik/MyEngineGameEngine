@@ -27,6 +27,15 @@ public:
     std::unordered_map<std::string, uint32_t>& GetAllMeshes(){return m_PathToID;}
     uint32_t CreateMesh(Mesh* meshData);
     void RegisterMesh(const std::string& path, uint32_t iD);
+    
+    void AddReference(const std::string& path){
+        auto it = m_PathToID.find(path);
+        if(it == m_PathToID.end()) return;
+        uint32_t iD = it->second;
+        m_MeshRefCount[iD]++;
+    }
+    
+    void RemoveReference(const std::string& path);
     void CleanUp();
 private:
     
@@ -34,7 +43,7 @@ private:
     bool LoadMeshBinary(const std::string& path, Mesh& outMesh);
     void CalculateTangents(Mesh& mesh);
 private:
-
+    std::unordered_map<uint32_t, int> m_MeshRefCount;
     std::unordered_map<uint32_t, Mesh*> m_Meshes;
     uint32_t m_NextMeshID = 1;
     uint32_t m_placeHolderID = 0;

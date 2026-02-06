@@ -39,6 +39,12 @@ struct BaseData{
 struct Mesh : public BaseData{
     std::vector<Vertex> vertices;
     std::vector<Face> faces;
+    
+    unsigned int VAO = 0;
+    unsigned int VBO = 0;
+    unsigned int EBO = 0;
+    int indexCount = 0;
+    bool uploaded = false;
 };
 
 struct TextureData : public BaseData{

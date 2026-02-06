@@ -113,4 +113,31 @@ void TextureManager::CleanUp(){
         }
     }
     m_Textures.clear();
+    m_TextureRefCount.clear();
+    m_PathToID.clear();
+
 }
+
+void TextureManager::RemoveReference(const std::string &path) {
+    auto it = m_PathToID.find(path);
+    uint32_t iD = it != m_PathToID.end()? it->second : UINT32_MAX;
+    if(iD == UINT32_MAX) return;
+    
+    if (--m_TextureRefCount[iD] > 0) return;
+    
+    TextureData* data = m_Textures[iD];
+    
+    if (data)
+    {
+        if (data->TextureObject != 0) {
+            glDeleteTextures(1, &data->TextureObject);
+        }
+        delete data;
+    }
+    std::cout<<"Texture Unloaded"<<std::endl;
+    m_Textures.erase(iD);
+    m_TextureRefCount.erase(iD);
+    m_PathToID.erase(path);
+    
+}
+

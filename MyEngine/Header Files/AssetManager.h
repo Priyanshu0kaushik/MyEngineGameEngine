@@ -28,9 +28,13 @@ public:
     void ProcessMessage(Message* msg);
     void SetMessageQueue(std::shared_ptr<MessageQueue> q) { messageQueue = q; }
     
-    void CleanUp();
-private:
+    void AddAssetReference(const std::string& path, AssetType type);
+    void RemoveAssetReference(const std::string& path, AssetType type);
+
     AssetType GetAssetTypeFromExtension(const std::string& path);
+
+    void CleanUp();
+
 private:
     static AssetManager* m_Instance;
     std::shared_ptr<MessageQueue> messageQueue;

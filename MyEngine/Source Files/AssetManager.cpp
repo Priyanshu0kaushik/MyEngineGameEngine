@@ -188,6 +188,15 @@ void AssetManager::ProcessMessage(Message *msg)
     }
 }
 
+void AssetManager::AddAssetReference(const std::string& path, AssetType type) {
+    if (type == AssetType::Mesh) m_MeshManager.AddReference(path);
+    else if (type == AssetType::Texture) m_TextureManager.AddReference(path);
+}
+void AssetManager::RemoveAssetReference(const std::string& path, AssetType type) {
+    if (type == AssetType::Mesh) m_MeshManager.RemoveReference(path);
+    else if (type == AssetType::Texture) m_TextureManager.RemoveReference(path);
+}
+
 void AssetManager::CleanUp()
 {
     

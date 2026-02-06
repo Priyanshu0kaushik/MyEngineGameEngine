@@ -25,14 +25,44 @@ private:
     void DrawAssetSlot(const char* Name, std::string& path, uint32_t& iD, AssetType Type);
     bool UpdateAssetSlot(std::string& path, uint32_t& id);
     
+    void RemoveReference(const std::string& path, AssetType type);
+
     template<typename T>
     void RemoveComponentButton()
     {
+        ImGui::PushID(typeid(T).name());
         if(ImGui::Button("Remove Component"))
         {
-            m_Context.coordinator->RemoveComponent<T>(*m_Context.selectedEntity);
+            Entity e = *m_Context.selectedEntity;
+            T* component = m_Context.coordinator->GetComponent<T>(e);
+
+            if (component)
+            {
+                if constexpr (std::is_same_v<T, MeshComponent>)
+                {
+                    if (!component->meshPath.empty()) {
+                        RemoveReference(component->meshPath, AssetType::Mesh);
+                    }
+                    if(!component->material.albedoPath.empty())
+                    {
+                        RemoveReference(component->material.albedoPath, AssetType::Texture);
+                    }
+                    if(!component->material.normalPath.empty())
+                    {
+                        RemoveReference(component->material.normalPath, AssetType::Texture);
+                    }
+                    if(!component->material.specPath.empty())
+                    {
+                        RemoveReference(component->material.specPath, AssetType::Texture);
+                    }
+                }
+                
+                
+            }
+
+            m_Context.coordinator->RemoveComponent<T>(e);
         }
-        
+        ImGui::PopID();
     }
 private:
     EditorDrawContext m_Context;
