@@ -19,6 +19,8 @@ void CameraSystem::Init()
     m_Coordinator->AddComponent(m_EditorCamera, transform);
     m_Coordinator->AddComponent(m_EditorCamera, cam);
     m_MainCam = m_EditorCamera;
+    
+    m_CurrentCameraSpeed = m_MinCameraSpeed;
 }
 
 void CameraSystem::Update()
@@ -67,7 +69,7 @@ void CameraSystem::ProcessKeyboardInput(GLFWwindow* aWindow ,float aDeltaTime){
     TransformComponent* transform = m_Coordinator->GetComponent<TransformComponent>(m_MainCam);
     CameraComponent* camera = m_Coordinator->GetComponent<CameraComponent>(m_MainCam);
 
-    const float cameraSpeed = m_CameraSpeedVar * aDeltaTime;
+    const float cameraSpeed = m_CurrentCameraSpeed * aDeltaTime;
     if (glfwGetKey(aWindow, GLFW_KEY_W) == GLFW_PRESS)
         transform->position += cameraSpeed * camera->Front;
     if (glfwGetKey(aWindow, GLFW_KEY_S) == GLFW_PRESS)
@@ -124,10 +126,9 @@ void CameraSystem::OnReleaseCamControl(){
 
 }
 
-void CameraSystem::ProcessMouseScroll(double yoffset){
-    if(m_MainCam==UINT32_MAX) return;
-    CameraComponent* camera = m_Coordinator->GetComponent<CameraComponent>(m_MainCam);
-    camera->Fov -= yoffset;
-    if (camera->Fov < 1.0f) camera->Fov = 1.0f;
-    if (camera->Fov > 90.0f) camera->Fov = 90.0f;
+void CameraSystem::ProcessMouseScroll(double yoffset)
+{
+    m_CurrentCameraSpeed -= yoffset * .2f;
+    if (m_CurrentCameraSpeed < m_MinCameraSpeed) m_CurrentCameraSpeed = m_MinCameraSpeed;
+    if (m_CurrentCameraSpeed > m_MaxCameraSpeed) m_CurrentCameraSpeed = m_MaxCameraSpeed;
 }

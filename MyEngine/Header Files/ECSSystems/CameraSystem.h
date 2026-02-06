@@ -34,7 +34,9 @@ private:
 private:
     Coordinator* m_Coordinator;
 
-    float m_CameraSpeedVar = 2.5f;
+    float m_CurrentCameraSpeed = 2.5f;
+    float m_MaxCameraSpeed = 15.f;
+    float m_MinCameraSpeed = 1.5f;
     bool bFirstMouse = true;
 
     Entity m_MainCam;

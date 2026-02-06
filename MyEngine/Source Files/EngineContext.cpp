@@ -71,6 +71,8 @@ EngineContext::EngineContext(int width, int height, const char* title)
     
     AssetManager::Allocate();
     AssetManager::Get().SetMessageQueue(m_MessageQueue);
+    AssetManager::Get().Init();
+
 
     m_EditorContext = new EditorContext();
     m_EditorContext->Init(m_Window, this);

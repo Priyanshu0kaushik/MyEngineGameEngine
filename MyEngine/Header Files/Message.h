@@ -10,12 +10,13 @@
 #include "AssetData.h"
 
 enum class MessageType {
-   
+    None,
     LoadAsset,
     AssetLoaded
 };
 struct Message{
     MessageType type;
+    Message(){type = MessageType::None;}
     virtual ~Message() = default;
 };
 
