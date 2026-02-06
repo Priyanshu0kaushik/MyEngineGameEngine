@@ -6,18 +6,11 @@
 //
 
 #include "AssetManager.h"
+#include "JobSystem.h"
 #include <filesystem>
 #include <algorithm>
 #include <iostream>
 
-#ifdef _WIN32
-#include <windows.h>
-#elif defined(__APPLE__)
-#include <pthread.h>
-#else
-#include <pthread.h>
-#include <sys/prctl.h>
-#endif
 
 AssetManager* AssetManager::m_Instance = nullptr;
 
@@ -37,47 +30,6 @@ AssetManager& AssetManager::Get()
 {
     return *m_Instance;
 };
-
-void AssetManager::Init()
-{
-    m_WorkerThread = std::thread(&AssetManager::WorkerLoop, this);
-}
-
-void AssetManager::WorkerLoop() {
-    const char* threadName = "AssetLoaderWorker";
-
-    #if defined(__APPLE__)
-        pthread_setname_np(threadName);
-    #elif defined(__linux__)
-        pthread_setname_np(pthread_self(), threadName);
-    #elif defined(_WIN32)
-        typedef HRESULT (WINAPI *TSetThreadDescription)(HANDLE, PCWSTR);
-        TSetThreadDescription pSetThreadDescription = (TSetThreadDescription)GetProcAddress(GetModuleHandleA("kernel32.dll"), "SetThreadDescription");
-        if (pSetThreadDescription) {
-            wchar_t wName[64];
-            mbstowcs(wName, threadName, 64);
-            pSetThreadDescription(GetCurrentThread(), wName);
-        }
-    #endif
-    
-    while (m_Running) {
-        auto msg = messageQueue->WaitAndPop();
-        if (msg->type == MessageType::LoadAsset) {
-            auto loadMsg = static_cast<LoadAssetMessage*>(msg.get());
-            AssetType type = GetAssetTypeFromExtension(loadMsg->path);
-
-            if (type == AssetType::Mesh) {
-                bool success = LoadAsset(loadMsg->path, loadMsg->assetHandle);
-                if (success) {
-                    auto reply = std::make_unique<AssetLoadedMessage>(loadMsg->path, type);
-                }
-            } else {
-                messageQueue->Push(std::move(msg));
-                std::this_thread::sleep_for(std::chrono::milliseconds(1));
-            }
-        }
-    }
-}
 
 
 std::string ToLowerCase(const std::string& str) {
@@ -125,15 +77,20 @@ bool AssetManager::LoadAsset(const std::string& path, AssetHandle& result)
 
     case AssetType::Mesh:
         std::cout << "[AssetManager-LoadAsset] Detected Mesh: " << path << std::endl;
-        if(m_MeshManager.LoadMesh(path.c_str(), static_cast<Mesh*>(result.Data))){
-            uint32_t iD = m_MeshManager.CreateMesh(static_cast<Mesh*>(result.Data));
-            result.iD = iD;
-            m_MeshManager.RegisterMesh(path.c_str(), iD);
-            result.IsReady = true;
-            m_LoadingPaths.erase(path);
-            return true;
-        }
-        else return false;
+        JobSystem::Get().Execute([this, path, result]() mutable {
+            // 1. CPU Parsing (Background)
+            if (m_MeshManager.LoadMesh(path.c_str(), static_cast<Mesh*>(result.Data))) {
+                uint32_t iD = m_MeshManager.CreateMesh(static_cast<Mesh*>(result.Data));
+                result.iD = iD;
+                m_MeshManager.RegisterMesh(path.c_str(), iD);
+                result.IsReady = true;
+                m_LoadingPaths.erase(path);
+                return true;
+            }
+            else return false;
+        });
+        
+        
 
 
     case AssetType::Material:
@@ -231,15 +188,9 @@ void AssetManager::ProcessMessage(Message *msg)
     }
 }
 
-void AssetManager::CleanUp(){
+void AssetManager::CleanUp()
+{
     
-    m_Running = false;
-        
-    messageQueue->Push(std::make_unique<Message>());
-
-    if (m_WorkerThread.joinable()) {
-        m_WorkerThread.join();
-    }
     m_MeshManager.CleanUp();
     m_TextureManager.CleanUp();
     

@@ -10,8 +10,6 @@
 #include "MeshManager.h"
 #include "MessageQueue.h"
 #include <unordered_set>
-#include <thread>
-#include <atomic>
 
 
 class AssetManager{
@@ -19,8 +17,6 @@ public:
     static void Allocate();
     static AssetManager& Get();
     static void DeAllocate();
-    
-    void Init();
 
     TextureManager& GetTextureManager() { return m_TextureManager; }
     MeshManager& GetMeshManager() { return m_MeshManager; }
@@ -35,14 +31,11 @@ public:
     void CleanUp();
 private:
     AssetType GetAssetTypeFromExtension(const std::string& path);
-    void WorkerLoop();
 private:
     static AssetManager* m_Instance;
     std::shared_ptr<MessageQueue> messageQueue;
     std::unordered_set<std::string> m_LoadingPaths;
     
-    std::thread m_WorkerThread;
-    std::atomic<bool> m_Running{true};
 
     TextureManager m_TextureManager;
     MeshManager m_MeshManager;

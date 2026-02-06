@@ -8,6 +8,7 @@
 #include "EngineContext.h"
 #include "Scene.h"
 #include "EditorContext.h"
+#include "JobSystem.h"
 #include "AssetManager.h"
 #include "Project.h"
 
@@ -19,6 +20,7 @@ EngineContext::EngineContext(int width, int height, const char* title)
     m_Coordinator = new Coordinator();
     m_Coordinator->Init();
     
+    JobSystem::Get().Init();
     
     if (!glfwInit())
         throw std::runtime_error("Failed to init GLFW");
@@ -71,7 +73,7 @@ EngineContext::EngineContext(int width, int height, const char* title)
     
     AssetManager::Allocate();
     AssetManager::Get().SetMessageQueue(m_MessageQueue);
-    AssetManager::Get().Init();
+    
 
 
     m_EditorContext = new EditorContext();
@@ -283,6 +285,7 @@ void EngineContext::Shutdown(){
     m_EditorContext->EndFrame();
     AssetManager::Get().CleanUp();
     AssetManager::DeAllocate();
+    JobSystem::Get().Shutdown();
     Cleanup();
     glfwTerminate();
 }
