@@ -16,29 +16,38 @@
 
 MeshManager::MeshManager()
 {
+    // Load Cube Asset to set it as Placeholder
     Mesh* placeholderMesh = new Mesh();
     LoadMesh("EngineAssets/Models/cube.obj", placeholderMesh);
     m_placeHolderID = CreateMesh(placeholderMesh);
     RegisterMesh("EngineAssets/Models/cube.obj", m_placeHolderID);
 }
 
+
+// MAIN LOAD FUNCTION
+// Checks for a custom binary cache first. If not found, parses the raw OBJ.
+
 bool MeshManager::LoadMesh(const std::string& path, Mesh* target)
 {
     PrintMemory();
+    
+    // 1. Check if mesh is already loaded in memory
     if (m_PathToID.find(path) != m_PathToID.end())
         return true;
 
+    // 2. Check for Binary Format (.memesh)
     std::string binPath = path + ".memesh";
     Mesh meshData;
 
     if (std::filesystem::exists(binPath))
     {
-        std::cout<<" BinaryLoading"<< std::endl;
+        std::cout<<"[Optimized] Loading Binary : " << binPath << std::endl;
         LoadMeshBinary(binPath, meshData);
         *target = meshData;
         return true;
     }
     else{
+        // 3. Parse raw OBJ file
         std::vector<glm::vec3> tempPositions;
         std::vector<glm::vec2> tempUVs;
         std::vector<glm::vec3> tempNormals;
@@ -57,25 +66,28 @@ bool MeshManager::LoadMesh(const std::string& path, Mesh* target)
             std::string prefix;
             ss >> prefix;
             
+            // Vertex Position
             if (prefix == "v")
             {
                 glm::vec3 pos;
                 ss >> pos.x >> pos.y >> pos.z;
                 tempPositions.push_back(pos);
             }
+            // Texture Coordinate
             else if (prefix == "vt")
             {
                 glm::vec2 uv;
                 ss >> uv.x >> uv.y;
                 tempUVs.push_back(uv);
             }
+            // Vertex Normal
             else if (prefix == "vn")
             {
                 glm::vec3 normal;
                 ss >> normal.x >> normal.y >> normal.z;
                 tempNormals.push_back(normal);
             }
-
+            // Face Definition (v/vt/vn)
             else if (prefix == "f")
             {
                 std::vector<uint32_t> polygonIndices;
@@ -112,6 +124,7 @@ bool MeshManager::LoadMesh(const std::string& path, Mesh* target)
                     }
                 }
 
+                // Handle Quads by triangulating them
                 if (polygonIndices.size() == 3)
                 {
                     Face face;
@@ -126,8 +139,11 @@ bool MeshManager::LoadMesh(const std::string& path, Mesh* target)
             }
         }
         file.close();
+        
+        // Tangents for Normal Mapping lighting calculations.
         CalculateTangents(meshData);
-        std::string binPath = path + ".memesh";
+        
+        // 5. Save Binary file for next time
         SaveMeshBinary(binPath, meshData);
     }
 
@@ -187,6 +203,7 @@ void MeshManager::TriangulateFace(const std::vector<uint32_t> &polygonIndices, s
     if (polygonIndices.size() < 3)
         return;
 
+    // Simple Fan Triangulation
     for (size_t i = 1; i + 1 < polygonIndices.size(); ++i)
     {
         Face face;
@@ -196,6 +213,10 @@ void MeshManager::TriangulateFace(const std::vector<uint32_t> &polygonIndices, s
         outFaces.push_back(face);
     }
 }
+
+
+// DEBUG UTILS
+// Prints current RAM usage to track memory leaks. (Rn for Mac- will be removed)
 
 void MeshManager::PrintMemory()
 {
@@ -230,23 +251,15 @@ void MeshManager::PrintMemory()
 //    uint64_t virtualMemUsed = vmstat.internal_page_count * pageSize;
     uint64_t virtualMemFree = vmstat.free_count * pageSize;
 
-    std::cout << "There is "
+    std::cout << "Available Physical Memory: "
               << freeMem / (1024 * 1024)
-              << " MB of physical memory available.\n";
-
-    std::cout << "There is "
-              << virtualMemFree / (1024 * 1024)
-              << " MB of virtual memory free.\n";
-
-    std::cout << "Total physical memory: "
-              << totalMem / (1024 * 1024)
               << " MB\n";
-
-    std::cout << "Used physical memory: "
+    std::cout << "Used Physical Memory: "
               << usedMem / (1024 * 1024)
               << " MB\n";
 }
 
+// BINARY SERIALIZATION
 bool MeshManager::SaveMeshBinary(const std::string &path, const Mesh &mesh)
 {
     std::ofstream out(path, std::ios::binary);
@@ -259,6 +272,7 @@ bool MeshManager::SaveMeshBinary(const std::string &path, const Mesh &mesh)
     uint32_t vertexCount = (uint32_t)mesh.vertices.size();
     out.write((char*)&vertexCount, sizeof(uint32_t));
     
+    // Write all vertices
     out.write((char*)mesh.vertices.data(), vertexCount * sizeof(Vertex));
 
     
@@ -291,6 +305,7 @@ bool MeshManager::LoadMeshBinary(const std::string &path, Mesh &outMesh)
     uint32_t vertexCount = 0;
     in.read((char*)&vertexCount, sizeof(uint32_t));
 
+    // Allocate memory
     outMesh.vertices.resize(vertexCount);
     in.read((char*)outMesh.vertices.data(),
             vertexCount * sizeof(Vertex));
@@ -312,6 +327,9 @@ bool MeshManager::LoadMeshBinary(const std::string &path, Mesh &outMesh)
     return true;
 }
 
+// MEMORY CLEANUP
+// Decrements reference count. If 0, deletes the GPU buffers (VAO/VBO/EBO).
+
 void MeshManager::RemoveReference(const std::string& path)
 {
     auto it = m_PathToID.find(path);
@@ -319,13 +337,15 @@ void MeshManager::RemoveReference(const std::string& path)
     if(iD == UINT32_MAX || iD == m_placeHolderID) return;
     
     if (--m_MeshRefCount[iD] > 0) return;
+    
     Mesh* meshData = m_Meshes[iD];
     if (meshData) {
+        // Free GPU Memory
         if (meshData->VAO != 0) glDeleteVertexArrays(1, &meshData->VAO);
         if (meshData->VBO != 0) glDeleteBuffers(1, &meshData->VBO);
         if (meshData->EBO != 0) glDeleteBuffers(1, &meshData->EBO);
 
-        std::cout<<"Mesh Unloaded"<<std::endl;
+        std::cout<<"Mesh Unloaded: " << path <<std::endl;
         meshData->vertices.clear();
         meshData->vertices.shrink_to_fit();
         meshData->faces.clear();
@@ -350,6 +370,7 @@ void MeshManager::CleanUp(){
     m_PathToID.clear();
 }
 
+// MATH: TANGENT CALCULATION
 void MeshManager::CalculateTangents(Mesh& mesh)
 {
     for (auto& v : mesh.vertices) {
@@ -368,7 +389,7 @@ void MeshManager::CalculateTangents(Mesh& mesh)
         glm::vec2 deltaUV2 = v3.uv - v1.uv;
 
         float det = (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
-                
+              
         float f = 0.0f;
         if (std::abs(det) > 1e-6f) {
             f = 1.0f / det;

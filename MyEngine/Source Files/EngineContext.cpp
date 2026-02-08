@@ -12,100 +12,127 @@
 #include "AssetManager.h"
 #include "Project.h"
 
-
-
-
+/**
+ * @brief Initializes the Core Engine Loop.
+ * Sets up the Entity Component System (ECS), Windowing (GLFW), and rendering pipelines.
+ */
 EngineContext::EngineContext(int width, int height, const char* title)
 {
+    // 1. ECS + Thread Initialization
     m_Coordinator = new Coordinator();
     m_Coordinator->Init();
-    
     JobSystem::Get().Init();
     
-    if (!glfwInit())
-        throw std::runtime_error("Failed to init GLFW");
-
-    //GLFW Window
+    if (!glfwInit()) throw std::runtime_error("Failed to init GLFW");
     InitWindow(width, height, title);
-    InitViewportFramebuffer(2048,2048);
-    
-    InitShadowMap();
-    //ImGUI
 
-    TestProjectSetupInit();
-    // Components
+    // 2. ImGui Initializations
+    m_EditorContext = new EditorContext();
+    m_EditorContext->Init(m_Window, this);
+
+    // 3. Register Basic Components
     m_Coordinator->RegisterComponent<NameComponent>();
     m_Coordinator->RegisterComponent<TransformComponent>();
     m_Coordinator->RegisterComponent<MeshComponent>();
     m_Coordinator->RegisterComponent<CameraComponent>();
     m_Coordinator->RegisterComponent<LightComponent>();
-    
-    // Systems
+
+    m_State = EngineState::Launcher;
+}
+
+void EngineContext::OnEngineLoaded()
+{
+    // 1. Messaging & Assets Initializations
+    m_MessageQueue = std::make_shared<MessageQueue>();
+    AssetManager::Allocate();
+    AssetManager::Get().SetMessageQueue(m_MessageQueue);
+
+    // 2. Systems Setup
     renderSystem = m_Coordinator->RegisterSystem<RenderSystem>();
-    renderSystem->SetCoordinator(m_Coordinator);
+    cameraSystem = m_Coordinator->RegisterSystem<CameraSystem>();
+    lightSystem = m_Coordinator->RegisterSystem<LightSystem>();
+
+
+    // Component Signatures
     Signature RenderSignature;
     RenderSignature.set(m_Coordinator->GetComponentType<TransformComponent>());
     RenderSignature.set(m_Coordinator->GetComponentType<MeshComponent>());
     m_Coordinator->SetSystemSignature<RenderSystem>(RenderSignature);
+    renderSystem->SetCoordinator(m_Coordinator);
     
-    cameraSystem = m_Coordinator->RegisterSystem<CameraSystem>();
-    cameraSystem->SetCoordinator(m_Coordinator);
+    
     Signature CameraSignature;
     CameraSignature.set(m_Coordinator->GetComponentType<TransformComponent>());
     CameraSignature.set(m_Coordinator->GetComponentType<CameraComponent>());
     m_Coordinator->SetSystemSignature<CameraSystem>(CameraSignature);
-    
-    lightSystem = m_Coordinator->RegisterSystem<LightSystem>();
-    lightSystem->SetCoordinator(m_Coordinator);
+    cameraSystem->SetCoordinator(m_Coordinator);
+
+ 
     Signature lightSignature;
     lightSignature.set(m_Coordinator->GetComponentType<TransformComponent>());
     lightSignature.set(m_Coordinator->GetComponentType<LightComponent>());
     m_Coordinator->SetSystemSignature<LightSystem>(lightSignature);
+    lightSystem->SetCoordinator(m_Coordinator);
     
     renderSystem->Init();
-    cameraSystem->Init();
     lightSystem->Init();
-    
-    
+
+    // 3. Setup Scene & Rendering Context
     m_Scene = new Scene(*m_Coordinator, renderSystem, cameraSystem);
-
-    m_MessageQueue = std::make_shared<MessageQueue>();
-    
-    AssetManager::Allocate();
-    AssetManager::Get().SetMessageQueue(m_MessageQueue);
-    
-
-
-    m_EditorContext = new EditorContext();
-    m_EditorContext->Init(m_Window, this);
-    
     m_ShaderManager = new ShaderManager();
     m_ShaderManager->Init();
+
+    InitViewportFramebuffer(2048, 2048);
+    InitShadowMap();
+
+    // 4. Load the actual scene data
+    std::string startScenePath = Project::GetActiveAbsoluteScenePath();
+    if (!startScenePath.empty()) {
+        m_Scene->Load(startScenePath);
+        cameraSystem->Init();
+
+    }
+    m_EditorContext->OnEditorLaunched();
+    
+    m_State = EngineState::Edit;
 }
 
+/**
+ * @brief Configures the Shadow Map Framebuffer (FBO).
+ */
 void EngineContext::InitShadowMap() {
     glGenFramebuffers(1, &m_DepthMapFBO);
 
+    // Create Depth Texture
     glGenTextures(1, &m_DepthMapTexture);
     glBindTexture(GL_TEXTURE_2D, m_DepthMapTexture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
     
+    // Set texture parameters for shadow sampling
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    
     float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
     glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
 
+    // Attach texture to Framebuffer
     glBindFramebuffer(GL_FRAMEBUFFER, m_DepthMapFBO);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_DepthMapTexture, 0);
     
+    // Not rendering color data
     glDrawBuffer(GL_NONE);
     glReadBuffer(GL_NONE);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
+/**
+ * @brief Initializes the Off-Screen Framebuffer.
+ * Instead of rendering directly to the window, we render to this texture (`m_ViewportTexture`).
+ * This texture is then passed to ImGui to be displayed as an Image inside an Editor Window.
+ */
 void EngineContext::InitViewportFramebuffer(int width, int height){
     m_ViewportWidth = width;
     m_ViewportHeight = height;
@@ -113,6 +140,7 @@ void EngineContext::InitViewportFramebuffer(int width, int height){
     glGenFramebuffers(1, &m_ViewportFBO);
     glBindFramebuffer(GL_FRAMEBUFFER, m_ViewportFBO);
 
+    // Create Color Attachment
     glGenTextures(1, &m_ViewportTexture);
     glBindTexture(GL_TEXTURE_2D, m_ViewportTexture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
@@ -120,6 +148,7 @@ void EngineContext::InitViewportFramebuffer(int width, int height){
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_ViewportTexture, 0);
 
+    // Create Depth/Stencil Attachment (RBO) for depth testing
     glGenRenderbuffers(1, &m_ViewportRBO);
     glBindRenderbuffer(GL_RENDERBUFFER, m_ViewportRBO);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
@@ -160,26 +189,8 @@ void EngineContext::InitWindow(int width, int height, const char* title){
     
     std::cout << "OpenGL version: " << glGetString(GL_VERSION) << std::endl;
     std::cout << "GLSL version: " << glGetString(GL_SHADING_LANGUAGE_VERSION) << std::endl;
-    glEnable(GL_DEPTH_TEST);
-
-}
-
-void EngineContext::TestProjectSetupInit(){
-    std::string workspacePath = "/Users/priyanshukaushik/MyEngineProjects";
-    std::string projectName = "TestProject";
     
-    std::filesystem::path projectFile = std::filesystem::path(workspacePath) / projectName / (projectName + ".meproject");
-
-    if (std::filesystem::exists(projectFile))
-    {
-        std::cout << "Loading existing project..." << std::endl;
-        Project::Load(projectFile);
-    }
-    else
-    {
-        std::cout << "Creating new project..." << std::endl;
-        Project::New(workspacePath, projectName);
-    }
+    glEnable(GL_DEPTH_TEST);
 }
 
 void EngineContext::OnStartControlCam(){
@@ -191,63 +202,103 @@ void EngineContext::OnReleaseCamControl(){
     cameraSystem->OnReleaseCamControl();
 }
 
-
+/**
+ * @brief The Main Engine Loop.
+ * 1. Calculates Delta Time.
+ * 2. PASS 1: Renders the Shadow Map.
+ * 3. PASS 2: Renders the Main Scene to Off-screen FBO.
+ * 4. PASS 3: Renders the Editor UI (ImGui) to the Window.
+ */
 void EngineContext::Draw(){
+    
     while (!glfwWindowShouldClose(m_Window))
     {
+        // Calculate Delta Time (Time between frames)
         float currentFrame = glfwGetTime();
         m_DeltaTime = currentFrame - m_LastFrameTime;
         m_LastFrameTime = currentFrame;
         
-        Shader* shadowShader = m_ShaderManager->Get("ShadowMap");
-        if (shadowShader) {
-            shadowShader->Use();
-            glm::mat4 lightSpaceMatrix = lightSystem->GetLightSpaceMatrix();
-            shadowShader->SetMatrix4(lightSpaceMatrix, "shadowMapMatrix");
+        fpsTimer += m_DeltaTime;
+        frameCount++;
 
-            glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
-            glBindFramebuffer(GL_FRAMEBUFFER, m_DepthMapFBO);
-            glClear(GL_DEPTH_BUFFER_BIT);
-
-            renderSystem->Render(*shadowShader);
-            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        // updating FPS in every 0.5 second
+        if (fpsTimer >= 0.5f) {
+            FPS = (int)(frameCount / fpsTimer);
+            frameCount = 0;
+            fpsTimer = 0.0f;
         }
-        
+        // Prepare ImGui frame
         m_EditorContext->BeginFrame();
-
-        /* Render here */
-        glBindFramebuffer(GL_FRAMEBUFFER, m_ViewportFBO);
         
-        glViewport(0, 0, m_ViewportWidth, m_ViewportHeight);
-        glClearColor(0.5f, 0.7f, 0.9f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        if (m_State == EngineState::Launcher) {
+            // Launcher UI
+            glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT);
             
-        ProcessMessages();
-        cameraSystem->Update();
-        
-        Shader* mainShader = m_ShaderManager->Get("Main");
-        if(mainShader){
-            mainShader->Use();
-            mainShader->SetMatrix4(cameraSystem->GetView(), "viewMatrix");
-            mainShader->SetMatrix4(cameraSystem->GetCameraProjection(), "projectionMatrix");
+            m_EditorContext->RenderLauncher();
+        }
+        else {
+            // Normal Editor Logic (After project is loaded)
+            ProcessMessages();
+            m_Scene->SyncLoadedAssets();
+            cameraSystem->Update();
 
-            glm::mat4 lightSpaceMatrix = lightSystem->GetLightSpaceMatrix();
-            mainShader->SetMatrix4(lightSpaceMatrix, "shadowMapMatrix");
+            // PASS 1: Shadow Mapping
+            // Render the scene from the Light's perspective into the Depth Buffer
+
+            Shader* shadowShader = m_ShaderManager->Get("ShadowMap");
+            if (shadowShader) {
+                shadowShader->Use();
+                glm::mat4 lightSpaceMatrix = lightSystem->GetLightSpaceMatrix();
+                shadowShader->SetMatrix4(lightSpaceMatrix, "shadowMapMatrix");
+
+                glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+                glBindFramebuffer(GL_FRAMEBUFFER, m_DepthMapFBO);
+                glClear(GL_DEPTH_BUFFER_BIT); // Only clearing depth, no color
+
+                renderSystem->Render(*shadowShader);
+                glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            }
             
-            glActiveTexture(GL_TEXTURE3);
-            glBindTexture(GL_TEXTURE_2D, m_DepthMapTexture);
-            mainShader->SetInt("shadowMap", 3);
+            // PASS 2: Main Scene Rendering
+            // Render the scene to the custom Framebuffer (m_ViewportFBO)
+
+            glBindFramebuffer(GL_FRAMEBUFFER, m_ViewportFBO);
             
-            renderSystem->Render(*mainShader);
-            lightSystem->Render(*mainShader);
+            glViewport(0, 0, m_ViewportWidth, m_ViewportHeight);
+            glClearColor(0.5f, 0.7f, 0.9f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            
+            Shader* mainShader = m_ShaderManager->Get("Main");
+            if(mainShader){
+                mainShader->Use();
+                
+                // Upload Camera Matrices
+                mainShader->SetMatrix4(cameraSystem->GetView(), "viewMatrix");
+                mainShader->SetMatrix4(cameraSystem->GetCameraProjection(), "projectionMatrix");
+
+                // Upload Shadow Matrix & Map
+                glm::mat4 lightSpaceMatrix = lightSystem->GetLightSpaceMatrix();
+                mainShader->SetMatrix4(lightSpaceMatrix, "shadowMapMatrix");
+                
+                glActiveTexture(GL_TEXTURE3);
+                glBindTexture(GL_TEXTURE_2D, m_DepthMapTexture);
+                mainShader->SetInt("shadowMap", 3);
+                
+                // Draw Scene
+                renderSystem->Render(*mainShader);
+                lightSystem->Render(*mainShader);
+            }
+
+            if(bControllingCamera) cameraSystem->ProcessInput(m_Window, m_DeltaTime);
+            
+            
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            
+            // Editor UI
+            m_EditorContext->RenderEditor();
         }
 
-        if(bControllingCamera) cameraSystem->ProcessInput(m_Window, m_DeltaTime);
-        
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        
-        // ImGUI
-        m_EditorContext->Render();
         glfwSwapBuffers(m_Window);
         glfwPollEvents();
     }
@@ -279,6 +330,11 @@ void EngineContext::ProcessMessages(){
     while(msg!=nullptr){
         SendMessage(std::move(msg));
     }
+}
+
+void EngineContext::SetState(EngineState newState)
+{
+    m_State = newState;
 }
 
 void EngineContext::Shutdown(){

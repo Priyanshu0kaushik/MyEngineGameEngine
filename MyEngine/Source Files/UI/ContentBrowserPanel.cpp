@@ -18,7 +18,7 @@ void ContentBrowserPanel::Init(EditorDrawContext& context)
 
 void ContentBrowserPanel::Draw(EditorDrawContext& context)
 {
-    if(!Project::GetActive()) return;
+    if(!Project::GetActiveProject()) return;
     std::filesystem::path assetPath = Project::GetAssetDirectory();
     if (m_CurrentDirectory.empty()) {
         m_CurrentDirectory = assetPath;

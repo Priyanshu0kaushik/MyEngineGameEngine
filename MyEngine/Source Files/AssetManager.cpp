@@ -11,7 +11,7 @@
 #include <algorithm>
 #include <iostream>
 
-
+// Singleton Instance
 AssetManager* AssetManager::m_Instance = nullptr;
 
 
@@ -49,7 +49,7 @@ AssetType AssetManager::GetAssetTypeFromExtension(const std::string &path)
     {
         return AssetType::Texture;
     }
-        
+          
     if (ext == ".obj")
     {
         return AssetType::Mesh;
@@ -58,6 +58,7 @@ AssetType AssetManager::GetAssetTypeFromExtension(const std::string &path)
     return AssetType::None;
 }
 
+// ASSET LOADING LOGIC
 bool AssetManager::LoadAsset(const std::string& path, AssetHandle& result)
 {
     AssetType type = GetAssetTypeFromExtension(path);
@@ -74,13 +75,16 @@ bool AssetManager::LoadAsset(const std::string& path, AssetHandle& result)
         }
         else return false;
         
-
     case AssetType::Mesh:
         std::cout << "[AssetManager-LoadAsset] Detected Mesh: " << path << std::endl;
+        
+        // MULTITHREADING / JOB SYSTEM
+        // JobSystem (Worker Threads) to prevent blocking the Main Game Loop (Frame Stutter).
         JobSystem::Get().Execute([this, path, result]() mutable {
-            // 1. CPU Parsing (Background)
             if (m_MeshManager.LoadMesh(path.c_str(), static_cast<Mesh*>(result.Data))) {
+                
                 uint32_t iD = m_MeshManager.CreateMesh(static_cast<Mesh*>(result.Data));
+                
                 result.iD = iD;
                 m_MeshManager.RegisterMesh(path.c_str(), iD);
                 result.IsReady = true;
@@ -90,12 +94,8 @@ bool AssetManager::LoadAsset(const std::string& path, AssetHandle& result)
             else return false;
         });
         
-        
-
-
     case AssetType::Material:
         std::cout << "[AssetManager-LoadAsset] Detected Material: " << path << std::endl;
-        
         break;
 
     default:
@@ -105,36 +105,41 @@ bool AssetManager::LoadAsset(const std::string& path, AssetHandle& result)
     return false;
 }
 
+
+// ASSET REQUEST (The "Get" Pattern)
+// Returns a Handle immediately.
+
 AssetHandle AssetManager::GetAsset(const std::string &path)
 {
     AssetHandle result;
     AssetType type = GetAssetTypeFromExtension(path);
     
+    // 1. Check if asset is already in Memory Cache
     if (type == AssetType::Mesh){
         result = m_MeshManager.GetMesh(path);
-        std::cout << "[AssetManager-GetAsset] Detected Mesh: " << path << std::endl;
     }
     else if (type == AssetType::Texture){
         result = m_TextureManager.GetTexture(path);
-        std::cout << "[AssetManager-GetAsset] Detected Texture: " << path << std::endl;
     }
     
+    // 2. If not found, queue a Load Request
     if (result.Data == nullptr)
     {
+        // Prevent duplicate load requests for the same file
         if (m_LoadingPaths.find(path) != m_LoadingPaths.end())
         {
-            return result;
+            return result; // Return empty result
         }
 
         m_LoadingPaths.insert(path);
 
         switch(type) {
             case AssetType::Texture:
-                
                 result.Data = new TextureData();
+                // Push message to the queue to initiate loading
                 messageQueue->Push(std::make_unique<LoadAssetMessage>(path, result));
                 break;
-                
+              
             case AssetType::Mesh:
                 result.Data = new Mesh();
                 messageQueue->Push(std::make_unique<LoadAssetMessage>(path, result));
@@ -153,11 +158,9 @@ AssetHandle AssetManager::GetAsset(AssetType Type, const uint32_t iD)
     switch(Type){
         case AssetType::Texture:
             return m_TextureManager.GetTexture(iD);
-            
             break;
         case AssetType::Mesh:
             return m_MeshManager.GetMesh(iD);
-            
             break;
         case AssetType::Material:
             break;
@@ -169,6 +172,9 @@ AssetHandle AssetManager::GetAsset(AssetType Type, const uint32_t iD)
     AssetHandle result;
     return result;
 }
+
+// MESSAGE PROCESSING
+// Handles events from the MessageBus.
 
 void AssetManager::ProcessMessage(Message *msg)
 {
@@ -188,6 +194,8 @@ void AssetManager::ProcessMessage(Message *msg)
     }
 }
 
+// REFERENCE COUNTING
+
 void AssetManager::AddAssetReference(const std::string& path, AssetType type) {
     if (type == AssetType::Mesh) m_MeshManager.AddReference(path);
     else if (type == AssetType::Texture) m_TextureManager.AddReference(path);
@@ -199,8 +207,6 @@ void AssetManager::RemoveAssetReference(const std::string& path, AssetType type)
 
 void AssetManager::CleanUp()
 {
-    
     m_MeshManager.CleanUp();
     m_TextureManager.CleanUp();
-    
 }

@@ -22,8 +22,9 @@
 
 
 enum class EngineState {
-    Edit,
-    Play
+    Edit = 0,
+    Play = 1,
+    Launcher = 2
 };
 
 class Scene;
@@ -33,6 +34,9 @@ class EditorContext;
 class EngineContext{
 public:
     EngineContext(int width, int height, const char* title);
+    
+    void OnEngineLoaded();
+    
     Scene* GetScene(){return m_Scene;}
     GLFWwindow* GetWindow(){return m_Window;}
     Coordinator* GetCoordinator(){return m_Coordinator;}
@@ -42,14 +46,14 @@ public:
     void Draw();
     void Shutdown();
     unsigned int GetViewportTexture(){return m_ViewportTexture;}
-    int GetFPS(){ return (int)(1/m_DeltaTime);}
+    int GetFPS(){ return FPS;}
     void OnStartControlCam();
     void OnReleaseCamControl();
     void InitShadowMap();
     void InitGBuffer();
     
     EngineState GetState() { return m_State; }
-    void SetState(EngineState state);
+    void SetState(EngineState newState);
     
     void PushMessage(std::unique_ptr<Message> msg){
         m_MessageQueue->Push(std::move(msg));
@@ -65,7 +69,6 @@ public:
     Entity CreateEntity(char* Name);
     void DeleteEntity(Entity aEntity);
 private:
-    void TestProjectSetupInit();
     void ProcessMessages();
     void SendMessage(std::unique_ptr<Message> msg);
     void InitWindow(int width, int height, const char* title);
@@ -94,8 +97,12 @@ private:
     unsigned int m_gBuffer, m_gDepthRBO;
     unsigned int m_gPosition, m_gNormal, m_gAlbedoSpec;
     
-    bool bControllingCamera = false;
-    
     float m_DeltaTime = 0.0f;
     float m_LastFrameTime = 0.0f;
+    float fpsTimer = 0.0f;
+    int frameCount = 0;
+    int FPS = 0;
+    
+    bool bControllingCamera = false;
+    
 };

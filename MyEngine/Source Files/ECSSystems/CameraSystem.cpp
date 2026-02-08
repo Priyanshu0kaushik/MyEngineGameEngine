@@ -40,7 +40,8 @@ void CameraSystem::OnPlayMode()
 void CameraSystem::LookAt(const glm::vec3& target, const glm::vec3& up){
     if(m_MainCam==UINT32_MAX) return;
     CameraComponent* camera = m_Coordinator->GetComponent<CameraComponent>(m_MainCam);
-
+    if(!camera) return;
+    
     camera->CameraTarget = target;
     camera->Up = up;
 }
@@ -49,12 +50,14 @@ glm::mat4 CameraSystem::GetView() const{
     if(m_MainCam==UINT32_MAX) return glm::mat4();
     TransformComponent* transform = m_Coordinator->GetComponent<TransformComponent>(m_MainCam);
     CameraComponent* camera = m_Coordinator->GetComponent<CameraComponent>(m_MainCam);
+    if(!camera || !transform) return glm::mat4();
     return glm::lookAt(transform->position, transform->position + camera->Front, camera->Up);
 }
 
 glm::mat4 CameraSystem::GetCameraProjection() const{
     if(m_MainCam==UINT32_MAX) return glm::mat4();
     CameraComponent* camera = m_Coordinator->GetComponent<CameraComponent>(m_MainCam);
+    if(!camera) return glm::mat4();
     return glm::perspective(glm::radians(camera->Fov), camera->AspectRatio, camera->Near, camera->Far);
 }
 
@@ -68,7 +71,8 @@ void CameraSystem::ProcessInput(GLFWwindow* aWindow, float aDeltaTime){
 void CameraSystem::ProcessKeyboardInput(GLFWwindow* aWindow ,float aDeltaTime){
     TransformComponent* transform = m_Coordinator->GetComponent<TransformComponent>(m_MainCam);
     CameraComponent* camera = m_Coordinator->GetComponent<CameraComponent>(m_MainCam);
-
+    if(!camera || !transform) return;
+    
     const float cameraSpeed = m_CurrentCameraSpeed * aDeltaTime;
     if (glfwGetKey(aWindow, GLFW_KEY_W) == GLFW_PRESS)
         transform->position += cameraSpeed * camera->Front;
@@ -87,7 +91,8 @@ void CameraSystem::ProcessKeyboardInput(GLFWwindow* aWindow ,float aDeltaTime){
 void CameraSystem::ProcessMouseInput(GLFWwindow* aWindow, float aDeltaTime)
 {
     CameraComponent* camera = m_Coordinator->GetComponent<CameraComponent>(m_MainCam);
-
+    if(!camera) return;
+    
     static double lastX = 0.0, lastY = 0.0;
 
     double xpos, ypos;

@@ -37,6 +37,7 @@ std::shared_ptr<Project> Project::New(const std::filesystem::path& baseDir, cons
     if (out.is_open()) {
         out << "ProjectName: " << projectName << "\n";
         out << "AssetDir: Assets" << "\n";
+        out << "StartScene: " << s_ActiveProject->m_Config.StartScene << "\n";
         out.close();
     }
     std::cout << "New Project Created: " << projectRoot << std::endl;
@@ -79,6 +80,7 @@ std::shared_ptr<Project> Project::Load(const std::filesystem::path& path)
     in.close();
 
     s_ActiveProject = project;
+    project->m_ActiveScenePath = project->m_Config.StartScene;
     
     std::cout << "Project Loaded: " << project->m_Config.Name << std::endl;
     return project;

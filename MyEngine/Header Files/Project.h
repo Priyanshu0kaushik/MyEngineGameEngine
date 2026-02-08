@@ -13,7 +13,7 @@ struct ProjectConfig
 {
     std::string Name = "Untitled";
     std::string AssetDirectory = "Assets";
-    std::string StartScene = "Scenes/Main.scene";
+    std::string StartScene = "Scenes/MainLevel.melevel";
 };
 
 class Project
@@ -29,7 +29,11 @@ public:
         return GetProjectDirectory() / s_ActiveProject->m_Config.AssetDirectory;
     }
 
-    static std::shared_ptr<Project> GetActive() { return s_ActiveProject; }
+    static std::shared_ptr<Project> GetActiveProject() { return s_ActiveProject; }
+    
+    static void SetActiveScenePath(std::string& path) { s_ActiveProject->m_ActiveScenePath = path; }
+    static std::string GetActiveRelativeScenePath() { return s_ActiveProject->m_ActiveScenePath; }
+    static std::string GetActiveAbsoluteScenePath() { return GetAssetDirectory().string()+"/"+s_ActiveProject->m_ActiveScenePath; }
 
 
     static std::shared_ptr<Project> New(const std::filesystem::path& baseDir, const std::string& projectName);
@@ -39,5 +43,6 @@ public:
 private:
     ProjectConfig m_Config;
     std::filesystem::path m_ProjectDirectory;
+    std::string m_ActiveScenePath;
     inline static std::shared_ptr<Project> s_ActiveProject;
 };

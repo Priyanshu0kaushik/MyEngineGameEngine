@@ -21,24 +21,32 @@ public:
     
     void BeginFrame();
     void EndFrame();
-    void Render();
+    void RenderEditor();
+    void RenderLauncher();
     void SetGizmosOperation(ImGuizmo::OPERATION newGizmoOperation);
-    
+    void OnEditorLaunched();
+
 private:
+    void DrawLauncher();
     void ProcessGizmosInput();
     void ShowViewport();
+    void ViewportToolbar();
     void DrawGizmos(ImVec2 pos, ImVec2 size);
     void DisplayFPS();
+    std::string OpenFolderDialog();
 private:
-    ImGuiIO* io;
+    EditorDrawContext context;
+    
+    ImGuiIO* io = nullptr;
+    ImFont* m_LauncherFont = nullptr;
     EngineContext* m_EngineContext = nullptr;
     Entity m_SelectedEntity;
-    Coordinator* m_Coordinator;
+    Coordinator* m_Coordinator = nullptr;
     
     ImGuizmo::OPERATION m_CurrentGizmoOperation = ImGuizmo::TRANSLATE;
     std::vector<UIPanel*> UIPanels;
     
     bool bCameraCapturing = false;
+    bool m_ShowNewProjectPopup = false;
 
-    EditorDrawContext context;
 };
