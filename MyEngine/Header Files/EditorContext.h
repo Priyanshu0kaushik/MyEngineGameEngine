@@ -20,6 +20,7 @@ public:
     void Init(GLFWwindow* window, EngineContext* engine);
     
     void BeginFrame();
+    Entity GetSelectedEntity(){ return m_SelectedEntity;}
     void EndFrame();
     void RenderEditor();
     void RenderLauncher();

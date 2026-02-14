@@ -36,8 +36,12 @@ EngineContext::EngineContext(int width, int height, const char* title)
     m_Coordinator->RegisterComponent<MeshComponent>();
     m_Coordinator->RegisterComponent<CameraComponent>();
     m_Coordinator->RegisterComponent<LightComponent>();
+    m_Coordinator->RegisterComponent<RigidBodyComponent>();
+    m_Coordinator->RegisterComponent<ColliderComponent>();
+    m_Coordinator->RegisterComponent<BoxColliderComponent>();
+    m_Coordinator->RegisterComponent<SphereColliderComponent>();
 
-    m_State = EngineState::Launcher;
+    SetState(EngineState::Launcher);
 }
 
 void EngineContext::OnEngineLoaded()
@@ -51,6 +55,9 @@ void EngineContext::OnEngineLoaded()
     renderSystem = m_Coordinator->RegisterSystem<RenderSystem>();
     cameraSystem = m_Coordinator->RegisterSystem<CameraSystem>();
     lightSystem = m_Coordinator->RegisterSystem<LightSystem>();
+    physicsSystem = m_Coordinator->RegisterSystem<PhysicsSystem>();
+    debugSystem = m_Coordinator->RegisterSystem<DebugGizmosSystem>();
+    
 
 
     // Component Signatures
@@ -74,8 +81,22 @@ void EngineContext::OnEngineLoaded()
     m_Coordinator->SetSystemSignature<LightSystem>(lightSignature);
     lightSystem->SetCoordinator(m_Coordinator);
     
+    Signature physicsSignature;
+    physicsSignature.set(m_Coordinator->GetComponentType<TransformComponent>());
+    physicsSignature.set(m_Coordinator->GetComponentType<RigidBodyComponent>());
+    m_Coordinator->SetSystemSignature<PhysicsSystem>(physicsSignature);
+    physicsSystem->SetCoordinator(m_Coordinator);
+    
+    Signature debugSignature;
+    debugSignature.set(m_Coordinator->GetComponentType<TransformComponent>());
+    debugSignature.set(m_Coordinator->GetComponentType<ColliderComponent>());
+    m_Coordinator->SetSystemSignature<DebugGizmosSystem>(debugSignature);
+    debugSystem->SetCoordinator(m_Coordinator);
+    
     renderSystem->Init();
     lightSystem->Init();
+    physicsSystem->Init();
+    debugSystem->Init();
 
     // 3. Setup Scene & Rendering Context
     m_Scene = new Scene(*m_Coordinator, renderSystem, cameraSystem);
@@ -86,15 +107,11 @@ void EngineContext::OnEngineLoaded()
     InitShadowMap();
 
     // 4. Load the actual scene data
-    std::string startScenePath = Project::GetActiveAbsoluteScenePath();
-    if (!startScenePath.empty()) {
-        m_Scene->Load(startScenePath);
-        cameraSystem->Init();
-
-    }
+    OnEditMode();
+    
     m_EditorContext->OnEditorLaunched();
     
-    m_State = EngineState::Edit;
+    SetState(EngineState::Edit);
 }
 
 /**
@@ -237,7 +254,8 @@ void EngineContext::Draw(){
             
             m_EditorContext->RenderLauncher();
         }
-        else {
+        else
+        {
             // Normal Editor Logic (After project is loaded)
             ProcessMessages();
             m_Scene->SyncLoadedAssets();
@@ -293,12 +311,35 @@ void EngineContext::Draw(){
             if(bControllingCamera) cameraSystem->ProcessInput(m_Window, m_DeltaTime);
             
             
+            if(m_State == EngineState::Edit){
+                if(m_EditorContext->GetSelectedEntity() != UINT32_MAX){
+                    physicsSystem->UpdateBounds(m_EditorContext->GetSelectedEntity());
+                    debugSystem->Update(m_EditorContext->GetSelectedEntity());
+                }
+                Shader* debugShader = m_ShaderManager->Get("DebugShader");
+                if(debugShader)
+                {
+                    debugShader->Use();
+                    debugShader->SetMatrix4(cameraSystem->GetView(), "view");
+                    debugShader->SetMatrix4(cameraSystem->GetCameraProjection(), "projection");
+                    
+                    glDisable(GL_DEPTH_TEST);
+                    debugSystem->Render();
+                    glEnable(GL_DEPTH_TEST);
+                }
+            }
+            
+            if(m_State == EngineState::Play){
+                physicsSystem->Update(m_DeltaTime);
+
+            }
+            
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
             
             // Editor UI
             m_EditorContext->RenderEditor();
         }
-
+        
         glfwSwapBuffers(m_Window);
         glfwPollEvents();
     }
@@ -334,7 +375,30 @@ void EngineContext::ProcessMessages(){
 
 void EngineContext::SetState(EngineState newState)
 {
+    // 1. Saving Scene before playing
+    if(m_State == EngineState::Edit && newState == EngineState::Play)
+    {
+        std::cout << "Saving scene before play..." << std::endl;
+        GetScene()->Save();
+    }
+
+    // 2. Returning to EDIT mode: Reset everything by loading the saved state
+    if(m_State == EngineState::Play && newState == EngineState::Edit)
+    {
+        std::cout << "Resetting scene after play..." << std::endl;
+        OnEditMode();
+    }
     m_State = newState;
+}
+
+void EngineContext::OnEditMode()
+{
+    std::string startScenePath = Project::GetActiveAbsoluteScenePath();
+    if (!startScenePath.empty()) {
+        m_Scene->Load(startScenePath);
+        cameraSystem->Init();
+
+    }
 }
 
 void EngineContext::Shutdown(){

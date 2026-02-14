@@ -16,34 +16,57 @@ void InspectorPanel::Draw(EditorDrawContext &context)
 {
     m_Context = context;
     if(*m_Context.selectedEntity == UINT32_MAX) return;
+    
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10, 10));
     ImGui::Begin("Inspector");
 
     
     if (context.coordinator->DoesEntityExist(*context.selectedEntity))
     {
         ShowNameComponent();
+        ImGui::Spacing();
         ShowTransformComponent();
+        ImGui::Spacing();
         ShowCameraComponent();
+        ImGui::Spacing();
         ShowMeshComponent();
+        ImGui::Spacing();
+        ShowRigidBodyComponent();
+        ImGui::Spacing();
+        ShowBoxColliderComponent();
+        ImGui::Spacing();
+        ShowSphereColliderComponent();
+        ImGui::Spacing();
         ShowLightComponent();
+        
+        
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
 
-        if(ImGui::Button("Reload Shader")){
-            m_Context.engine->GetShaderManager()->ReloadShaders();
-        }
-        
-        ShowLoadAssetButton();
-        
-        if(ImGui::Button("Add Component"))
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.4f, 0.2f, 1.0f));
+        if(ImGui::Button(" + Add Component", ImVec2(ImGui::GetContentRegionAvail().x, 30)))
         {
             ImGui::OpenPopup("AddComponentPopup");
         }
+        ImGui::PopStyleColor();
         
+        ShowAddComponentsList();
     }
-    ShowAddComponentsList();
-
+        
+    ImGui::Separator();
+    
+    float footerHeight = 30.0f;
+    if (ImGui::GetContentRegionAvail().y > footerHeight)
+    {
+        ImGui::SetCursorPosY(ImGui::GetWindowHeight() - footerHeight - ImGui::GetStyle().WindowPadding.y);
+    }
+    if(ImGui::Button("Reload Shader", ImVec2(ImGui::GetContentRegionAvail().x, footerHeight - 5.0f))) {
+        m_Context.engine->GetShaderManager()->ReloadShaders();
+    }
+    ImGui::PopStyleVar();
     ImGui::End();
 }
-
 
 void InspectorPanel::ShowAddComponentsList()
 {
@@ -56,10 +79,19 @@ void InspectorPanel::ShowAddComponentsList()
 
         for (std::string name : m_Context.coordinator->GetComponentNames())
         {
+            if(name == "Collider Component") continue;
             if (strstr(name.c_str(), search)!=nullptr)
             {
                 if (ImGui::Selectable(name.c_str()))
                 {
+                    if(name == "Box Collider") {
+                        m_Context.coordinator->AddComponentByName(*m_Context.selectedEntity, "Collider Component");
+                        m_Context.coordinator->GetComponent<ColliderComponent>(*m_Context.selectedEntity)->type = ColliderType::Box;
+                    }
+                    else if(name == "Sphere Collider") {
+                        m_Context.coordinator->AddComponentByName(*m_Context.selectedEntity, "Collider Component");
+                        m_Context.coordinator->GetComponent<ColliderComponent>(*m_Context.selectedEntity)->type = ColliderType::Sphere;
+                    }
                     m_Context.coordinator->AddComponentByName(*m_Context.selectedEntity, name.c_str());
                     ImGui::CloseCurrentPopup();
                 }
@@ -82,23 +114,28 @@ void InspectorPanel::ShowTransformComponent()
 {
     TransformComponent* tc = m_Context.coordinator->GetComponent<TransformComponent>(*m_Context.selectedEntity);
     if(!tc) return;
-    ImGui::SeparatorText("Transform Component");
-    glm::vec3 pos = tc->position;
-    ImGui::Text("Position");
-    if (ImGui::DragFloat3("###Position", &pos.x, 0.1f))
-        tc->position=pos;
+    if (ImGui::CollapsingHeader(" Transform", ImGuiTreeNodeFlags_DefaultOpen))
+    {
+        ImGui::Spacing();
+        
+        glm::vec3 pos = tc->position;
+        ImGui::Text("Position");
+        if (ImGui::DragFloat3("###Position", &pos.x, 0.1f)){
+            tc->SetPosition(pos);
+        }
 
-    glm::vec3 rot = tc->rotation;
-    ImGui::Text("Rotation");
-    if (ImGui::DragFloat3("###Rotation", &rot.x, 0.1f))
-        tc->rotation = rot;
-
-    glm::vec3 scale = tc->scale;
-    ImGui::Text("Scale");
-    if (ImGui::DragFloat3("###Scale", &scale.x, 0.1f, 0.01f, 10.0f))
-        tc->scale = scale;
-
-    ImGui::Separator();
+        glm::vec3 rot = tc->rotation;
+        ImGui::Text("Rotation");
+        if (ImGui::DragFloat3("###Rotation", &rot.x, 0.1f)){
+            tc->SetRotation(rot);
+        }
+        glm::vec3 scale = tc->scale;
+        ImGui::Text("Scale");
+        if (ImGui::DragFloat3("###Scale", &scale.x, 0.1f, 0.01f, 10.0f)){
+            tc->SetScale(scale);
+        }
+        ImGui::Spacing();
+    }
 
 }
 
@@ -143,129 +180,36 @@ void InspectorPanel::ShowMeshComponent()
     if(!m_Context.coordinator->GetComponent<MeshComponent>(*m_Context.selectedEntity)) return;
     
     MeshComponent* mesh = m_Context.coordinator->GetComponent<MeshComponent>(*m_Context.selectedEntity);
-    ImGui::SeparatorText("Mesh Component");
-
     
-    DrawAssetSlot("Mesh",mesh->meshPath , mesh->meshID, AssetType::Mesh);
-    bool MeshLoaded = UpdateAssetSlot(mesh->meshPath, mesh->meshID);
-    
-    Mesh* meshData = static_cast<Mesh*>(AssetManager::Get().GetAsset(AssetType::Mesh, mesh->meshID).Data);
-
-    if(MeshLoaded && meshData) meshData->uploaded = false;
-    
-    
-    
-    ImGui::Separator();
-    ShowMaterialSetting(mesh->material);
-    
-    const char* mipmapModes[] = { "Nearest", "Linear", "Trilinear (Mipmaps)" };
-    static int currentMode = 2;
-    
-    ImGui::Text("MipMap Settings");
-
-    if (ImGui::Combo("###MipMapMode", &currentMode, mipmapModes, IM_ARRAYSIZE(mipmapModes))) {
-        if(mesh->material.albedoID != UINT32_MAX) {
-            AssetManager::Get().GetTextureManager().SetMipMapSettings(mesh->material.albedoID, currentMode);
-        }
-    }
-    
-    RemoveComponentButton<MeshComponent>();
-    ImGui::Separator();
-    
-}
-
-void InspectorPanel::ShowMaterialSetting(Material& material)
-{
-    auto& Textures = AssetManager::Get().GetTextureManager().GetAllTextures();
-
-    DrawAssetSlot("Main Texture", material.albedoPath, material.albedoID, AssetType::Texture);
-    DrawAssetSlot("Normal Map", material.normalPath, material.normalID, AssetType::Texture);
-    DrawAssetSlot("Specular Map", material.specPath, material.specID, AssetType::Texture);
-    
-    UpdateAssetSlot(material.albedoPath, material.albedoID);
-    UpdateAssetSlot(material.normalPath, material.normalID);
-    UpdateAssetSlot(material.specPath, material.specID);
-    
-    ImGui::Separator();
-
-    
-    if (ImGui::CollapsingHeader("Material")) {
-        ImGui::ColorEdit3("Ambient", glm::value_ptr(material.Ambient));
-        ImGui::ColorEdit3("Diffuse", glm::value_ptr(material.Diffuse));
-        ImGui::ColorEdit3("Specular", glm::value_ptr(material.Specular));
-        ImGui::SliderFloat("Shininess", &material.Shininess, 1.0f, 256.0f);
-    }
-    
-}
-
-void InspectorPanel::DrawAssetSlot(const char* Name, std::string &path, uint32_t &iD, AssetType Type)
-{
-    ImGui::PushID(Name);
-    
-    ImGui::TextWrapped("%s", Name);
-
-    ImGui::Spacing();
-    
-    uint32_t openGLHandle = 0;
-    switch(Type){
-        case AssetType::Mesh:
-            ImGui::TextWrapped("Change Mesh");
-            break;
-        case AssetType::Texture:
-            ImGui::TextWrapped("Change Texture");
-            if (iD != UINT32_MAX) {
-                AssetHandle handle = AssetManager::Get().GetTextureManager().GetTexture(iD);
-                if (handle.IsReady && handle.Data) {
-                    TextureData* texData = static_cast<TextureData*>(handle.Data);
-                    openGLHandle = texData->TextureObject;
-                }
+    if (ImGui::CollapsingHeader("Mesh Component", ImGuiTreeNodeFlags_DefaultOpen)){
+        
+        DrawAssetSlot("Mesh",mesh->meshPath , mesh->meshID, AssetType::Mesh);
+        bool MeshLoaded = UpdateAssetSlot(mesh->meshPath, mesh->meshID);
+        
+        Mesh* meshData = static_cast<Mesh*>(AssetManager::Get().GetAsset(AssetType::Mesh, mesh->meshID).Data);
+        
+        if(MeshLoaded && meshData) meshData->uploaded = false;
+        
+        
+        ShowMaterialSetting(mesh->material);
+        
+        ImGui::Spacing();
+        const char* mipmapModes[] = { "Nearest", "Linear", "Trilinear (Mipmaps)" };
+        static int currentMode = 2;
+        
+        ImGui::Text("MipMap Settings");
+        
+        if (ImGui::Combo("###MipMapMode", &currentMode, mipmapModes, IM_ARRAYSIZE(mipmapModes))) {
+            if(mesh->material.albedoID != UINT32_MAX) {
+                AssetManager::Get().GetTextureManager().SetMipMapSettings(mesh->material.albedoID, currentMode);
             }
-            break;
-        default:
-            ImGui::TextWrapped("Change Asset");
-    }
-
-    if (Type == AssetType::Texture) {
-        if(iD != UINT32_MAX) ImGui::Image((ImTextureID)(uintptr_t)openGLHandle, ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0));
-        else ImGui::Button(path.empty() ? "Empty" : "Texture", ImVec2(64, 64));
-    } else {
-        ImGui::Button(path.empty() ? "Empty" : "Mesh", ImVec2(64, 64));
-    }
-
-    if (ImGui::BeginDragDropTarget()) {
-        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM")) {
-            const char* assetPath = (const char*)payload->Data;
-            if (!path.empty() && path != assetPath)
-            {
-                 AssetManager::Get().RemoveAssetReference(path, Type);
-            }
-            
-            path = assetPath;
-            iD = UINT32_MAX;
-            AssetManager::Get().GetAsset(path);
-            std::cout << "Dropped and Loaded: " << path << std::endl;
         }
-        ImGui::EndDragDropTarget();
+        
+        ImGui::Spacing();
+        RemoveComponentButton<MeshComponent>();
+        ImGui::Separator();
     }
-    ImGui::SameLine();
-    ImGui::TextWrapped("%s", path.empty() ? "None" : std::filesystem::path(path).filename().string().c_str());
-    ImGui::PopID();
     
-}
-
-bool InspectorPanel::UpdateAssetSlot(std::string &path, uint32_t &id)
-{
-    if (!path.empty() && id == UINT32_MAX) {
-        AssetHandle handle = AssetManager::Get().GetAsset(path);
-        if (handle.IsReady && handle.iD != UINT32_MAX) {
-            std::cout<<handle.iD<<std::endl;
-            id = handle.iD;
-            AssetType type = AssetManager::Get().GetAssetTypeFromExtension(path);
-            AssetManager::Get().AddAssetReference(path, type);
-            return true;
-        }
-    }
-    return false;
 }
 
 void InspectorPanel::ShowCameraComponent()
@@ -293,10 +237,177 @@ void InspectorPanel::ShowCameraComponent()
     if(ImGui::Checkbox("###MainCam", &IsMain))
         cam->IsPrimary = IsMain;
 
-    
+    ImGui::Spacing();
+    RemoveComponentButton<CameraComponent>();
     ImGui::Separator();
     
 }
+
+void InspectorPanel::ShowRigidBodyComponent()
+{
+    RigidBodyComponent* rigidBody = m_Context.coordinator->GetComponent<RigidBodyComponent>(*m_Context.selectedEntity);
+    if(!rigidBody) return;
+    if (ImGui::CollapsingHeader("RigidBody Component", ImGuiTreeNodeFlags_DefaultOpen))
+    {
+        ImGui::DragFloat("Mass", &rigidBody->mass, 0.1f, 0.0f, 1000.0f);
+        ImGui::DragFloat("Gravity", &rigidBody->gravityScale, 0.1f, 0.0f, 1.0f);
+        
+        ImGui::Checkbox("Static", &rigidBody->isStatic);
+        ImGui::Checkbox("Kinematic", &rigidBody->isKinematic);
+        
+        ImGui::Spacing();
+        RemoveComponentButton<RigidBodyComponent>();
+        ImGui::Separator();
+    }
+}
+
+void InspectorPanel::ShowBoxColliderComponent()
+{
+    ColliderComponent* collider = m_Context.coordinator->GetComponent<ColliderComponent>(*m_Context.selectedEntity);
+    BoxColliderComponent* boxCollider = m_Context.coordinator->GetComponent<BoxColliderComponent>(*m_Context.selectedEntity);
+    if(!collider|| !boxCollider) return;
+    if (ImGui::CollapsingHeader("Box Collider", ImGuiTreeNodeFlags_DefaultOpen))
+    {
+        ImGui::DragFloat("Friction", &collider->friction, 0.1f, 0.0f, 1.0f);
+        ImGui::DragFloat("Bounciness", &collider->bounciness, 0.1f, 0.0f, 1.0f);
+        
+        if(ImGui::DragFloat3("Center", &collider->center.x, 0.1f)){
+            collider->isDirty = true;
+        }
+        if(ImGui::DragFloat3("Extents", &boxCollider->extents.x, 0.1f)){
+            collider->isDirty = true;
+        }
+    
+        ImGui::Spacing();
+        RemoveComponentButton<BoxColliderComponent>();
+        ImGui::Separator();
+    }
+}
+void InspectorPanel::ShowSphereColliderComponent()
+{
+    ColliderComponent* collider = m_Context.coordinator->GetComponent<ColliderComponent>(*m_Context.selectedEntity);
+    SphereColliderComponent* sphereCollider = m_Context.coordinator->GetComponent<SphereColliderComponent>(*m_Context.selectedEntity);
+    if(!collider|| !sphereCollider) return;
+    if (ImGui::CollapsingHeader("Sphere Collider", ImGuiTreeNodeFlags_DefaultOpen))
+    {
+        ImGui::DragFloat("Friction", &collider->friction, 0.1f, 0.0f, 1.0f);
+        ImGui::DragFloat("Bounciness", &collider->bounciness, 0.1f, 0.0f, 1.0f);
+        
+        if(ImGui::DragFloat3("Center", &collider->center.x, 0.1f)){
+            collider->isDirty = true;
+        }
+        if(ImGui::DragFloat("Radius", &sphereCollider->radius, 0.1f)){
+            collider->isDirty = true;
+        }
+    
+        ImGui::Spacing();
+        RemoveComponentButton<SphereColliderComponent>();
+        ImGui::Separator();
+    }
+}
+
+void InspectorPanel::ShowMaterialSetting(Material& material)
+{
+    auto& Textures = AssetManager::Get().GetTextureManager().GetAllTextures();
+
+    DrawAssetSlot("Main Texture", material.albedoPath, material.albedoID, AssetType::Texture);
+    DrawAssetSlot("Normal Map", material.normalPath, material.normalID, AssetType::Texture);
+    DrawAssetSlot("Specular Map", material.specPath, material.specID, AssetType::Texture);
+    
+    UpdateAssetSlot(material.albedoPath, material.albedoID);
+    UpdateAssetSlot(material.normalPath, material.normalID);
+    UpdateAssetSlot(material.specPath, material.specID);
+    
+    ImGui::Spacing();
+    ImGui::Text("Material");
+    ImGui::Spacing();
+    ImGui::ColorEdit3("Ambient", glm::value_ptr(material.Ambient));
+    ImGui::ColorEdit3("Diffuse", glm::value_ptr(material.Diffuse));
+    ImGui::ColorEdit3("Specular", glm::value_ptr(material.Specular));
+    ImGui::SliderFloat("Shininess", &material.Shininess, 1.0f, 256.0f);
+    
+}
+
+void InspectorPanel::DrawAssetSlot(const char* Name, std::string &path, uint32_t &iD, AssetType Type)
+{
+    ImGui::PushID(Name);
+    ImGui::BeginGroup();
+    
+    ImGui::TextDisabled("%s", Name);
+    
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
+
+    ImGui::Spacing();
+    
+    uint32_t openGLHandle = 0;
+    switch(Type){
+        case AssetType::Mesh:
+            ImGui::TextWrapped("Change Mesh");
+            break;
+        case AssetType::Texture:
+            ImGui::TextWrapped("Change Texture");
+            if (iD != UINT32_MAX) {
+                AssetHandle handle = AssetManager::Get().GetTextureManager().GetTexture(iD);
+                if (handle.IsReady && handle.Data) {
+                    TextureData* texData = static_cast<TextureData*>(handle.Data);
+                    openGLHandle = texData->TextureObject;
+                }
+            }
+            break;
+        default:
+            ImGui::TextWrapped("Change Asset");
+    }
+
+    if (Type == AssetType::Texture && iD != UINT32_MAX) {
+        ImGui::Image((ImTextureID)(uintptr_t)openGLHandle, ImVec2(40, 40), ImVec2(0, 1), ImVec2(1, 0), ImVec4(1,1,1,1), ImVec4(1,1,1,0.2f));
+    } else {
+        ImGui::Button(path.empty() ? "None" : "FILE", ImVec2(64, 64));
+    }
+
+    if (ImGui::BeginDragDropTarget()) {
+        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM")) {
+            const char* assetPath = (const char*)payload->Data;
+            if (!path.empty() && path != assetPath)
+            {
+                 AssetManager::Get().RemoveAssetReference(path, Type);
+            }
+            
+            path = assetPath;
+            iD = UINT32_MAX;
+            AssetManager::Get().GetAsset(path);
+            std::cout << "Dropped and Loaded: " << path << std::endl;
+        }
+        ImGui::EndDragDropTarget();
+    }
+    ImGui::SameLine();
+    ImGui::BeginChild(Name, ImVec2(0, 40), false, ImGuiWindowFlags_NoScrollbar);
+    ImGui::TextWrapped("%s", path.empty() ? "Drop Asset Here" : std::filesystem::path(path).filename().string().c_str());
+    if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", path.c_str());
+    ImGui::EndChild();
+
+    ImGui::PopStyleVar();
+    ImGui::PopStyleColor();
+    ImGui::EndGroup();
+    ImGui::PopID();
+    
+}
+
+bool InspectorPanel::UpdateAssetSlot(std::string &path, uint32_t &id)
+{
+    if (!path.empty() && id == UINT32_MAX) {
+        AssetHandle handle = AssetManager::Get().GetAsset(path);
+        if (handle.IsReady && handle.iD != UINT32_MAX) {
+            std::cout<<handle.iD<<std::endl;
+            id = handle.iD;
+            AssetType type = AssetManager::Get().GetAssetTypeFromExtension(path);
+            AssetManager::Get().AddAssetReference(path, type);
+            return true;
+        }
+    }
+    return false;
+}
+
 
 void InspectorPanel::RenameRender()
 {
@@ -329,20 +440,6 @@ void InspectorPanel::RenameRender()
         }
     }
     
-}
-
-void InspectorPanel::ShowLoadAssetButton()
-{
-    ImGui::SeparatorText("Load Asset");
-    char m_AssetPath[128] = "Path";
-    bool pathEntered = ImGui::InputText(
-        "###AssetPath",
-        m_AssetPath,
-        IM_ARRAYSIZE(m_AssetPath),
-        ImGuiInputTextFlags_EnterReturnsTrue
-    );
-
-    if(pathEntered) AssetManager::Get().GetAsset(m_AssetPath);
 }
 
 void InspectorPanel::RemoveReference(const std::string &path, AssetType type) { 

@@ -18,6 +18,26 @@ struct TransformComponent
     glm::vec3 rotation = {0.0f, 0.0f, 0.0f};
     glm::vec3 scale = glm::vec3(1.0f);
     
+    bool isDirty = true;
+    
+    void SetPosition(const glm::vec3& newPos) {
+        if(position == newPos) return;
+        position = newPos;
+        isDirty = true;
+    }
+
+    void SetRotation(const glm::vec3& newRot) {
+        if(rotation == newRot) return;
+        rotation = newRot;
+        isDirty = true;
+    }
+
+    void SetScale(const glm::vec3& newScale) {
+        if(scale == newScale) return;
+        scale = newScale;
+        isDirty = true;
+    }
+    
     static constexpr const char* TypeName = "Transform Component";
     static constexpr const bool UniquePerEntity = true;
 
@@ -79,5 +99,69 @@ struct LightComponent {
     float quadratic = 0.032f;
     
     static constexpr const char* TypeName = "Light Component";
+    static constexpr const bool UniquePerEntity = true;
+};
+
+struct RigidBodyComponent {
+    glm::vec3 velocity = glm::vec3(0.0f);
+    glm::vec3 acceleration = glm::vec3(0.0f);
+    float mass = 1.0f;
+    float gravityScale = 1.0f;
+    bool isStatic = false;
+    bool isKinematic = false;
+    
+    void AddForce(glm::vec3 force)
+    {
+        if (!isStatic && !isKinematic) {
+            acceleration += force / mass;
+        }
+    }
+    
+    static constexpr const char* TypeName = "RigidBody Component";
+    static constexpr const bool UniquePerEntity = true;
+};
+
+enum class ColliderType{
+    None = 0,
+    Box = 1,
+    Sphere = 2
+};
+
+struct ColliderComponent {
+    
+    ColliderType type = ColliderType::None;
+
+    glm::mat4 worldTransform = glm::mat4(1.0f);
+    glm::mat4 worldInverse = glm::mat4(1.0f);
+    
+    float bounciness = 0.2f;
+    float friction = 0.5f;
+
+    glm::vec3 worldMin;
+    glm::vec3 worldMax;
+
+    glm::vec3 center = {0, 0, 0};
+    
+    bool isTrigger = false;
+    bool isColliding = false;
+    bool isDirty = false;
+    
+    static constexpr const char* TypeName = "Collider Component";
+    static constexpr const bool UniquePerEntity = true;
+};
+
+struct BoxColliderComponent
+{
+    glm::vec3 extents = {0.5f, 0.5f, 0.5f};
+    
+    static constexpr const char* TypeName = "Box Collider";
+    static constexpr const bool UniquePerEntity = true;
+};
+
+struct SphereColliderComponent
+{
+    float radius = 0.5f;
+
+    static constexpr const char* TypeName = "Sphere Collider";
     static constexpr const bool UniquePerEntity = true;
 };

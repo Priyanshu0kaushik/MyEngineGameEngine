@@ -50,7 +50,12 @@ public:
 
             if ((entitySignature & systemSignature) == systemSignature)
             {
-                system->mEntities.push_back(entity);
+                auto& entities = system->mEntities;
+                            
+                if (std::find(entities.begin(), entities.end(), entity) == entities.end())
+                {
+                    system->mEntities.push_back(entity);
+                }
             }
             else
             {

@@ -11,6 +11,8 @@
 #include "ECSSystems/RenderSystem.h"
 #include "ECSSystems/CameraSystem.h"
 #include "ECSSystems/LightSystem.h"
+#include "ECSSystems/PhysicsSystem.h"
+#include "ECSSystems/DebugGizmosSystem.h"
 #include "AssetData.h"
 #include "ECS/Coordinator.h"
 #include "MessageQueue.h"
@@ -42,15 +44,14 @@ public:
     Coordinator* GetCoordinator(){return m_Coordinator;}
     ShaderManager* GetShaderManager(){return m_ShaderManager;}
     std::shared_ptr<CameraSystem> GetCameraSystem(){ return cameraSystem;}
-    void InitViewportFramebuffer(int width, int height);
-    void Draw();
-    void Shutdown();
     unsigned int GetViewportTexture(){return m_ViewportTexture;}
     int GetFPS(){ return FPS;}
+    
+    void Draw();
+    void Shutdown();
+    
     void OnStartControlCam();
     void OnReleaseCamControl();
-    void InitShadowMap();
-    void InitGBuffer();
     
     EngineState GetState() { return m_State; }
     void SetState(EngineState newState);
@@ -69,6 +70,9 @@ public:
     Entity CreateEntity(char* Name);
     void DeleteEntity(Entity aEntity);
 private:
+    void InitViewportFramebuffer(int width, int height);
+    void InitShadowMap();
+    void OnEditMode();
     void ProcessMessages();
     void SendMessage(std::unique_ptr<Message> msg);
     void InitWindow(int width, int height, const char* title);
@@ -86,6 +90,8 @@ private:
     std::shared_ptr<RenderSystem> renderSystem;
     std::shared_ptr<CameraSystem> cameraSystem;
     std::shared_ptr<LightSystem> lightSystem;
+    std::shared_ptr<PhysicsSystem> physicsSystem;
+    std::shared_ptr<DebugGizmosSystem> debugSystem;
     
     
     float m_ViewportWidth, m_ViewportHeight;

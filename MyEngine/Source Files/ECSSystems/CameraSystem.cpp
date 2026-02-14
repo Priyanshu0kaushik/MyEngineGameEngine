@@ -15,7 +15,7 @@ void CameraSystem::Init()
     m_Coordinator->GetComponent<NameComponent>(m_EditorCamera)->Name = "Editor Camera";
     CameraComponent cam{};
     TransformComponent transform{};
-    transform.position = {0,5,-15};
+    transform.position = {0,5,15};
     m_Coordinator->AddComponent(m_EditorCamera, transform);
     m_Coordinator->AddComponent(m_EditorCamera, cam);
     m_MainCam = m_EditorCamera;

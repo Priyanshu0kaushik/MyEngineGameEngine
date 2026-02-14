@@ -13,7 +13,7 @@
 
 class LightSystem : public ECSSystem{
 public:
-    void Init();
+    void Init() override;
     void Render(Shader& shader);
     void SetCoordinator(Coordinator* aCoordinator){m_Coordinator = aCoordinator;}
     glm::mat4 GetLightSpaceMatrix();

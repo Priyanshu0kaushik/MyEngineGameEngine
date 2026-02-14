@@ -15,6 +15,7 @@ public:
     void Init() {
         AddShader("Main", "Shaders/VertexShader.glsl", "Shaders/FragmentShader.glsl");
         AddShader("ShadowMap", "Shaders/ShadowDepthVertexShader.glsl", "Shaders/ShadowDepthFragmentShader.glsl");
+        AddShader("DebugShader", "Shaders/DebugGizmosVertexShader.glsl", "Shaders/DebugGizmosFragmentShader.glsl");
     }
 
     void AddShader(const std::string& name, const char* vPath, const char* fPath) {

@@ -56,11 +56,58 @@ void Scene::Save() {
                  << tc->scale.x << " " << tc->scale.y << " " << tc->scale.z << "\n";
         }
 
-        // 3. Mesh Component
+        
+        // 3. Light Component
+        if (auto* lc = m_Coordinator.GetComponent<LightComponent>(entity)) {
+            file << "Light: " << (int)lc->type << " "
+                 << lc->color.r << " " << lc->color.g << " " << lc->color.b << " "
+                 << lc->intensity << " "
+                 << lc->constant << " " << lc->linear << " " << lc->quadratic << "\n";
+        }
+        
+        // 4. Camera Component
+        if (auto* cc = m_Coordinator.GetComponent<CameraComponent>(entity)) {
+            file << "Component: Camera\n";
+            file << "Cam_Settings: " << cc->Fov << " " << cc->Near << " " << cc->Far << " " << cc->AspectRatio << "\n";
+            file << "Cam_Orientation: " << cc->Yaw << " " << cc->Pitch << "\n";
+            file << "Cam_State: " << (cc->IsPrimary ? "1" : "0") << "\n";
+        }
+        
+        // 5. RigidBody Component
+        if (auto* rb = m_Coordinator.GetComponent<RigidBodyComponent>(entity)) {
+            file << "RigidBody: " << rb->mass << " " << rb->gravityScale << " " << (rb->isStatic? "1" : "0") << " " << (rb->isKinematic? "1" : "0") << "\n";
+        }
+        
+        // 6. Collider Component
+        if(auto* collider = m_Coordinator.GetComponent<ColliderComponent>(entity))
+        {
+            // Type, Center (x,y,z), Bounciness, Friction, isTrigger
+            file << "Collider: " << (int)collider->type << " "
+                 << collider->center.x << " " << collider->center.y << " " << collider->center.z << " "
+                 << collider->bounciness << " " << collider->friction << " "
+                 << (collider->isTrigger ? 1 : 0) << "\n";
+        }
+
+        // 7. Box Collider Component
+        if(auto* boxCollider = m_Coordinator.GetComponent<BoxColliderComponent>(entity))
+        {
+            // Extents (x,y,z)
+            file << "BoxCollider: " << boxCollider->extents.x << " "
+                 << boxCollider->extents.y << " " << boxCollider->extents.z << "\n";
+        }
+        
+        // 8. Sphere Collider Component
+        if(auto* sphereCollider = m_Coordinator.GetComponent<SphereColliderComponent>(entity))
+        {
+            // radius
+            file << "SphereCollider: " << sphereCollider->radius << "\n";
+        }
+        
+        // 9. Mesh Component -- save at last
         if (auto* mc = m_Coordinator.GetComponent<MeshComponent>(entity)) {
             if(mc->meshPath.empty()){
                 file << "MeshPath: " << "No Path" << "\n";
-                break;
+                continue;
             }
             else file << "MeshPath: " << mc->meshPath << "\n";
             
@@ -76,21 +123,6 @@ void Scene::Save() {
             if (!mat.specPath.empty())   file << "Tex_Spec: " << mat.specPath << "\n";
         }
 
-        // 4. Light Component
-        if (auto* lc = m_Coordinator.GetComponent<LightComponent>(entity)) {
-            file << "Light: " << (int)lc->type << " "
-                 << lc->color.r << " " << lc->color.g << " " << lc->color.b << " "
-                 << lc->intensity << " "
-                 << lc->constant << " " << lc->linear << " " << lc->quadratic << "\n";
-        }
-        
-        // 5. Camera Component
-        if (auto* cc = m_Coordinator.GetComponent<CameraComponent>(entity)) {
-            file << "Component: Camera\n";
-            file << "Cam_Settings: " << cc->Fov << " " << cc->Near << " " << cc->Far << " " << cc->AspectRatio << "\n";
-            file << "Cam_Orientation: " << cc->Yaw << " " << cc->Pitch << "\n";
-            file << "Cam_State: " << (cc->IsPrimary ? "1" : "0") << "\n";
-        }
 
         file << "[EndEntity]\n\n";
     }
@@ -116,7 +148,6 @@ void Scene::Load(const std::string& filePath) {
     }
     
     mPendingMeshEntities.clear();
-
     std::string line;
     Entity currentEntity = 0;
     bool entityCreated = false;
@@ -146,15 +177,90 @@ void Scene::Load(const std::string& filePath) {
             ss >> tc.position.x >> tc.position.y >> tc.position.z
                >> tc.rotation.x >> tc.rotation.y >> tc.rotation.z
                >> tc.scale.x >> tc.scale.y >> tc.scale.z;
-            m_Coordinator.AddComponent(currentEntity, tc);
+            m_Coordinator.AddComponent<TransformComponent>(currentEntity, tc);
         }
-        // 3. Mesh Component
+
+
+        // 3. Light Component
+        else if (line.find("Light: ") == 0) {
+            LightComponent lc;
+            std::stringstream ss(line.substr(7));
+            int typeInt;
+            ss >> typeInt >> lc.color.r >> lc.color.g >> lc.color.b >> lc.intensity
+               >> lc.constant >> lc.linear >> lc.quadratic;
+            lc.type = (LightType)typeInt;
+            m_Coordinator.AddComponent<LightComponent>(currentEntity, lc);
+        }
+        
+        // 4. Camera Component
+        else if (line.find("Component: Camera") == 0) {
+            CameraComponent cc;
+            std::string camLine;
+            while (std::getline(file, camLine) && camLine != "[EndEntity]") {
+                std::stringstream ss(camLine);
+                std::string tag;
+                ss >> tag;
+                if (tag == "Cam_Settings:") ss >> cc.Fov >> cc.Near >> cc.Far >> cc.AspectRatio;
+                else if (tag == "Cam_Orientation:") ss >> cc.Yaw >> cc.Pitch;
+                else if (tag == "Cam_State:") ss >> cc.IsPrimary;
+                if (file.peek() == '[') break;
+            }
+            m_Coordinator.AddComponent<CameraComponent>(currentEntity, cc);
+        }
+        
+        // 5. RigidBody Component
+        else if (line.find("RigidBody: ") == 0)
+        {
+            std::cout<<"RigidBody\n";
+            RigidBodyComponent rb;
+            std::stringstream ss(line.substr(11));
+            ss >> rb.mass >> rb.gravityScale >> rb.isStatic >> rb.isKinematic;
+            
+            m_Coordinator.AddComponent<RigidBodyComponent>(currentEntity, rb);
+        }
+        
+        // 6. Collider
+        else if (line.find("Collider: ") == 0) {
+            std::cout<<"Collider\n";
+            ColliderComponent col;
+            int typeInt, triggerInt;
+            std::stringstream ss(line.substr(10));
+            
+            ss >> typeInt >> col.center.x >> col.center.y >> col.center.z
+                 >> col.bounciness >> col.friction >> triggerInt;
+            
+            col.type = (ColliderType)typeInt;
+            col.isTrigger = (triggerInt == 1);
+            m_Coordinator.AddComponent<ColliderComponent>(currentEntity, col);
+        }
+        
+        // 7. Box Collider
+        else if (line.find("BoxCollider: ") == 0) {
+            std::cout<<"BoxCollider\n";
+            BoxColliderComponent box;
+            std::stringstream ss(line.substr(13));
+            
+            ss >> box.extents.x >> box.extents.y >> box.extents.z;
+            m_Coordinator.AddComponent<BoxColliderComponent>(currentEntity, box);
+        }
+        
+        // 8. Sphere Collider
+        else if (line.find("SphereCollider: ") == 0) {
+            std::cout<<"SphereCollider\n";
+            SphereColliderComponent sphere;
+            std::stringstream ss(line.substr(16));
+            
+            ss >> sphere.radius;
+            m_Coordinator.AddComponent<SphereColliderComponent>(currentEntity, sphere);
+        }
+        
+        // 9. Mesh Component
         else if (line.find("MeshPath: ") == 0) {
             MeshComponent mc;
             mc.meshPath = line.substr(10);
             if(mc.meshPath == "No Path") {
                 mc.meshPath.clear();
-                m_Coordinator.AddComponent(currentEntity, mc);
+                m_Coordinator.AddComponent<MeshComponent>(currentEntity, mc);
                 continue;
             }
             
@@ -180,40 +286,18 @@ void Scene::Load(const std::string& filePath) {
                     AssetManager::Get().GetAsset(mc.material.specPath);
                 }
                 
-                if (file.peek() == '[' || matLine.find("Component:") != std::string::npos) break;
+                if (matLine.find("RigidBody: ") == 0 ||
+                        matLine.find("Light: ") == 0 ||
+                        matLine.find("Component: ") == 0 ||
+                        matLine.find("[EndEntity]") == 0) break;
             }
 
             if(!mc.meshPath.empty()) AssetManager::Get().GetAsset(mc.meshPath);
             mPendingMeshEntities.emplace_back(currentEntity);
             
-            m_Coordinator.AddComponent(currentEntity, mc);
-        }
-
-        // 4. Light Component
-        else if (line.find("Light: ") == 0) {
-            LightComponent lc;
-            std::stringstream ss(line.substr(7));
-            int typeInt;
-            ss >> typeInt >> lc.color.r >> lc.color.g >> lc.color.b >> lc.intensity
-               >> lc.constant >> lc.linear >> lc.quadratic;
-            lc.type = (LightType)typeInt;
-            m_Coordinator.AddComponent(currentEntity, lc);
+            m_Coordinator.AddComponent<MeshComponent>(currentEntity, mc);
         }
         
-        // 5. Camera Component
-        else if (line.find("Component: Camera") == 0) {
-            CameraComponent cc;
-            std::string camLine;
-            while (std::getline(file, camLine) && camLine != "[EndEntity]") {
-                std::stringstream ss(camLine);
-                std::string tag; ss >> tag;
-                if (tag == "Cam_Settings:") ss >> cc.Fov >> cc.Near >> cc.Far >> cc.AspectRatio;
-                else if (tag == "Cam_Orientation:") ss >> cc.Yaw >> cc.Pitch;
-                else if (tag == "Cam_State:") ss >> cc.IsPrimary;
-                if (file.peek() == '[') break;
-            }
-            m_Coordinator.AddComponent(currentEntity, cc);
-        }
     }
     file.close();
     SyncLoadedAssets();

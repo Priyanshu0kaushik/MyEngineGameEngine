@@ -12,14 +12,18 @@ class InspectorPanel : public UIPanel{
 public:
     virtual void Draw(EditorDrawContext& context) override;
 private:
+    
     void ShowAddComponentsList();
     void ShowNameComponent();
     void ShowTransformComponent();
     void ShowMeshComponent();
     void ShowCameraComponent();
-    void ShowLoadAssetButton();
-    void RenameRender();
     void ShowLightComponent();
+    void ShowRigidBodyComponent();
+    void ShowBoxColliderComponent();
+    void ShowSphereColliderComponent();
+    
+    void RenameRender();
     void ShowMaterialSetting(Material& material);
     
     void DrawAssetSlot(const char* Name, std::string& path, uint32_t& iD, AssetType Type);
@@ -55,6 +59,12 @@ private:
                     {
                         RemoveReference(component->material.specPath, AssetType::Texture);
                     }
+                }
+                else if constexpr (std::is_same_v<T, BoxColliderComponent>){
+                    m_Context.coordinator->RemoveComponent<ColliderComponent>(e);
+                }
+                else if constexpr (std::is_same_v<T, SphereColliderComponent>){
+                    m_Context.coordinator->RemoveComponent<ColliderComponent>(e);
                 }
                 
                 

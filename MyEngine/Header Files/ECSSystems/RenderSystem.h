@@ -13,11 +13,14 @@
 
 class RenderSystem : public ECSSystem{
 public:
-    void Init();
+    void Init() override;
     void Render(Shader& shader);
     void SetCoordinator(Coordinator* aCoordinator){m_Coordinator = aCoordinator;}
 private:
+    void DrawPhysicsGizmos();
     void UploadMeshIfNeeded(Entity e, MeshComponent* mc);
     glm::mat4 BuildModelMatrix(TransformComponent* t);
+    
+private:
     Coordinator* m_Coordinator;
 };

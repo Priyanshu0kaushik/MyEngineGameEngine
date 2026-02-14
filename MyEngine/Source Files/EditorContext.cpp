@@ -329,26 +329,20 @@ void EditorContext::DrawGizmos(ImVec2 pos, ImVec2 size) {
                          glm::value_ptr(modelMatrix), glm::value_ptr(deltaMatrix));
     
     if (ImGuizmo::IsUsing()) {
-        float dTr[3], dRo[3], dSc[3];
-        ImGuizmo::DecomposeMatrixToComponents(glm::value_ptr(deltaMatrix), dTr, dRo, dSc);
+        glm::vec3 translation, rotation, scale;
+        ImGuizmo::DecomposeMatrixToComponents(glm::value_ptr(modelMatrix),
+                                                     glm::value_ptr(translation),
+                                                     glm::value_ptr(rotation),
+                                                     glm::value_ptr(scale));
 
         if (m_CurrentGizmoOperation == ImGuizmo::TRANSLATE) {
-            tc->position += glm::vec3(dTr[0], dTr[1], dTr[2]);
+            tc->SetPosition(translation);
         }
-        
-        if (m_CurrentGizmoOperation == ImGuizmo::ROTATE) {
-            tc->rotation += glm::vec3(dRo[0], dRo[1], dRo[2]);
-            tc->rotation.x = fmod(tc->rotation.x, 360.0f);
-            tc->rotation.y = fmod(tc->rotation.y, 360.0f);
-            tc->rotation.z = fmod(tc->rotation.z, 360.0f);
-
-            if (tc->rotation.x < 0) tc->rotation.x += 360.0f;
-            if (tc->rotation.y < 0) tc->rotation.y += 360.0f;
-            if (tc->rotation.z < 0) tc->rotation.z += 360.0f;
+        else if (m_CurrentGizmoOperation == ImGuizmo::ROTATE) {
+            tc->SetRotation(rotation);
         }
-        
-        if (m_CurrentGizmoOperation == ImGuizmo::SCALE) {
-            tc->scale *= glm::vec3(dSc[0], dSc[1], dSc[2]);
+        else if (m_CurrentGizmoOperation == ImGuizmo::SCALE) {
+            tc->SetScale(scale);
         }
     }
 }

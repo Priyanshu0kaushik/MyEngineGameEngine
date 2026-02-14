@@ -23,7 +23,7 @@ void AssetManager::Allocate()
 }
 
 void AssetManager::DeAllocate(){
-    delete m_Instance;
+    if(m_Instance) delete m_Instance;
 }
 
 AssetManager& AssetManager::Get()
@@ -207,6 +207,7 @@ void AssetManager::RemoveAssetReference(const std::string& path, AssetType type)
 
 void AssetManager::CleanUp()
 {
+    if(!m_Instance) return;
     m_MeshManager.CleanUp();
     m_TextureManager.CleanUp();
 }
