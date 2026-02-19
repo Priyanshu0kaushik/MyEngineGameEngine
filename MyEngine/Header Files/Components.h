@@ -113,7 +113,7 @@ struct RigidBodyComponent {
     
     void AddForce(glm::vec3 force)
     {
-        if (!isStatic && !isKinematic) {
+        if (!isStatic) {
             acceleration += force / mass;
         }
     }
