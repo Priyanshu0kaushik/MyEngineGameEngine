@@ -15,7 +15,6 @@ public:
     void Init() override;
     void Update(float deltaTime);
     void UpdateBounds(Entity entity);
-    void SetCoordinator(Coordinator* aCoordinator){m_Coordinator = aCoordinator;}
     
 private:
     glm::mat4 GetWorldMatrix(const TransformComponent* transform);
@@ -24,7 +23,6 @@ private:
     bool CheckSphereBoxCollision(Entity sphereEnt, Entity boxEnt);
     void ProjectBox(const ColliderComponent* col, const BoxColliderComponent* box, const glm::vec3& axis, float& min, float& max);
 private:
-    Coordinator* m_Coordinator;
-    
+
     glm::vec3 axes[15];
 };

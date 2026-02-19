@@ -6,4 +6,5 @@
 //
 
 #include "MaterialManager.h"
+#include "ScriptManager.h"
 

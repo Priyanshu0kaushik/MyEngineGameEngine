@@ -10,6 +10,7 @@
 #include <memory>
 #include "AssetData.h"
 #include "AssetManager.h"
+#include "sol/sol.hpp"
 
 
 struct TransformComponent
@@ -163,5 +164,18 @@ struct SphereColliderComponent
     float radius = 0.5f;
 
     static constexpr const char* TypeName = "Sphere Collider";
+    static constexpr const bool UniquePerEntity = true;
+};
+
+struct ScriptComponent
+{
+    std::string scriptPath;
+    sol::environment env;
+    bool initialized = false;
+    
+    sol::protected_function onUpdate;
+    sol::protected_function onCreate;
+    
+    static constexpr const char* TypeName = "Script Component";
     static constexpr const bool UniquePerEntity = true;
 };

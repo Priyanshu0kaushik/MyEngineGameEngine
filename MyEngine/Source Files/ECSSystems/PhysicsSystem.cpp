@@ -18,47 +18,48 @@ void PhysicsSystem::Init()
 // PHYSICS UPDATE LOOP
 void PhysicsSystem::Update(float deltaTime)
 {
-
+    if(!m_Coordinator) return;
+    
     // Update position and velocity for all dynamic bodies
     for(Entity& entity : mEntities)
     {
         RigidBodyComponent* rigidBody = m_Coordinator->GetComponent<RigidBodyComponent>(entity);
         TransformComponent* transform = m_Coordinator->GetComponent<TransformComponent>(entity);
         if(!rigidBody || !transform) continue;
-         
-        // Handle Dynamic Objects
-        if(!rigidBody->isStatic && !rigidBody->isKinematic)
-        {
-            // Apply Gravity
-            if(rigidBody->gravityScale != 0)
-            {
-                float gravity = -9.81f * rigidBody->gravityScale;
-                rigidBody->velocity.y += gravity * deltaTime;
-            }
-            
-            // Apply Acceleration
-            rigidBody->velocity += rigidBody->acceleration * deltaTime;
-            
-            glm::vec3 newPos = transform->position + (rigidBody->velocity * deltaTime);
-            transform->SetPosition(newPos);
-            
-            rigidBody->acceleration = glm::vec3(0.0f);
-
-        }
-        // Handle Kinematic Objects (Moved by code)
-        else if (!rigidBody->isStatic && rigidBody->isKinematic)
-        {
-            glm::vec3 newPos = transform->position + (rigidBody->velocity * deltaTime);
-            transform->SetPosition(newPos);
-        }
-         
+        
         // Update Bounding Volume (AABB/OBB) to match new Transform
-        if(ColliderComponent* cc = m_Coordinator->GetComponent<ColliderComponent>(entity))
+        if(m_Coordinator->GetComponent<ColliderComponent>(entity))
         {
             UpdateBounds(entity);
         }
         
-        rigidBody->velocity *= 0.98f;
+        if(rigidBody->isStatic) continue;
+        
+        // Handle Dynamic Objects
+        if(!rigidBody->isKinematic)
+        {
+            // Apply Gravity
+            float gravity = -9.81f * rigidBody->gravityScale;
+            rigidBody->velocity.y += gravity * deltaTime;
+            
+        }
+        
+        rigidBody->velocity += rigidBody->acceleration * deltaTime;
+        
+        if (glm::length(rigidBody->velocity) > 0.0001f)
+        {
+            glm::vec3 newPos = transform->position + (rigidBody->velocity * deltaTime);
+            transform->SetPosition(newPos);
+            
+        }
+ 
+         
+        rigidBody->acceleration = glm::vec3(0.0f);
+
+        float damping = std::pow(0.98f, deltaTime * 60.0f);
+        rigidBody->velocity *= damping;
+        
+        if (glm::length(rigidBody->velocity) < 0.01f) rigidBody->velocity = glm::vec3(0.0f);
     }
     
     // COLLISION DETECTION
@@ -68,6 +69,11 @@ void PhysicsSystem::Update(float deltaTime)
             
             auto* colliderA = m_Coordinator->GetComponent<ColliderComponent>(*itA);
             auto* colliderB = m_Coordinator->GetComponent<ColliderComponent>(*itB);
+            
+            auto* rbA = m_Coordinator->GetComponent<RigidBodyComponent>(*itA);
+            auto* rbB = m_Coordinator->GetComponent<RigidBodyComponent>(*itB);
+            
+            if (rbA->isStatic && rbB->isStatic) continue;
             
             if (colliderA && colliderB)
             {
@@ -99,6 +105,7 @@ void PhysicsSystem::Update(float deltaTime)
 
 // Updates the min/max bounds of a collider when the object moves or rotates.
 void PhysicsSystem::UpdateBounds(Entity entity) {
+    if(!m_Coordinator) return;
     auto* transform = m_Coordinator->GetComponent<TransformComponent>(entity);
     auto* collider = m_Coordinator->GetComponent<ColliderComponent>(entity);
 
@@ -175,6 +182,8 @@ void PhysicsSystem::ProjectBox(const ColliderComponent* col, const BoxColliderCo
 // BOX vs BOX COLLISION (Separating Axis Theorem)
 // First we see using AABB, then if needed we check using SAT
 bool PhysicsSystem::CheckBoxBoxCollision(Entity entityA, Entity entityB) {
+    if(!m_Coordinator) return;
+    
     auto* colA = m_Coordinator->GetComponent<ColliderComponent>(entityA);
     auto* colB = m_Coordinator->GetComponent<ColliderComponent>(entityB);
     colA->isColliding = false;
@@ -298,6 +307,8 @@ bool PhysicsSystem::CheckBoxBoxCollision(Entity entityA, Entity entityB) {
 // SPHERE vs SPHERE
 // Simple distance check
 bool PhysicsSystem::CheckSphereSphereCollision(Entity entityA, Entity entityB) {
+    if(!m_Coordinator) return;
+    
     auto* colA = m_Coordinator->GetComponent<ColliderComponent>(entityA);
     auto* colB = m_Coordinator->GetComponent<ColliderComponent>(entityB);
     auto* sphereA = m_Coordinator->GetComponent<SphereColliderComponent>(entityA);
@@ -325,6 +336,8 @@ bool PhysicsSystem::CheckSphereSphereCollision(Entity entityA, Entity entityB) {
 // SPHERE vs BOX
 // Find Closest Point on AABB -> Distance Check.
 bool PhysicsSystem::CheckSphereBoxCollision(Entity sphereEnt, Entity boxEnt) {
+    if(!m_Coordinator) return;
+    
     auto* sphereCol = m_Coordinator->GetComponent<ColliderComponent>(sphereEnt);
     auto* sphereData = m_Coordinator->GetComponent<SphereColliderComponent>(sphereEnt);
     auto* boxCol = m_Coordinator->GetComponent<ColliderComponent>(boxEnt);
@@ -371,6 +384,7 @@ bool PhysicsSystem::CheckSphereBoxCollision(Entity sphereEnt, Entity boxEnt) {
 }
 
 glm::mat4 PhysicsSystem::GetWorldMatrix(const TransformComponent* transform) {
+    if(!transform) return;
     glm::mat4 model = glm::mat4(1.0f);
 
     model = glm::translate(model, transform->position);

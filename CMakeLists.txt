@@ -4,6 +4,8 @@ project(MyEngine)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 
 include(FetchContent)
 
@@ -13,7 +15,20 @@ FetchContent_Declare(
     GIT_TAG         0af55ccecd98d4e5a8d1fad7de25ba429d60e863 # Version 1.0.1
 )
 
-FetchContent_MakeAvailable(glm)
+FetchContent_Declare(
+    sol2
+    GIT_REPOSITORY https://github.com/ThePhD/sol2.git
+    GIT_TAG        main
+)
+
+FetchContent_MakeAvailable(glm sol2)
+
+set(LUA_PATH "${CMAKE_CURRENT_SOURCE_DIR}/MyEngine/External/Lua")
+file(GLOB LUA_SOURCES "${LUA_PATH}/*.c")
+list(REMOVE_ITEM LUA_SOURCES "${LUA_PATH}/lua.c" "${LUA_PATH}/luac.c")
+
+add_library(Lua STATIC ${LUA_SOURCES})
+target_include_directories(Lua PUBLIC "${LUA_PATH}")
 
 file(GLOB_RECURSE MAIN_SRC_FILES 
     "${CMAKE_CURRENT_SOURCE_DIR}/MyEngine/Source Files/*.cpp"
@@ -45,7 +60,6 @@ add_executable(${PROJECT_NAME}
     ${SHADER_FILES}
 )
 
-
 target_include_directories(${PROJECT_NAME} PRIVATE 
     "${CMAKE_CURRENT_SOURCE_DIR}/MyEngine"
     "${CMAKE_CURRENT_SOURCE_DIR}/MyEngine/Source Files"
@@ -55,10 +69,10 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/MyEngine/External/ImGui"
     "${CMAKE_CURRENT_SOURCE_DIR}/MyEngine/External"
     "${CMAKE_CURRENT_SOURCE_DIR}/MyEngine/External/GLFW/include/GLFW"
+    "${LUA_PATH}"
 )
 
-
-target_link_libraries(${PROJECT_NAME} PRIVATE glm::glm)
+target_link_libraries(${PROJECT_NAME} PRIVATE Lua sol2 glm::glm)
 
 if(APPLE)
     set(GLFW_LIB "${CMAKE_CURRENT_SOURCE_DIR}/MyEngine/External/GLFW/lib-mac/libglfw3.a")
@@ -107,5 +121,6 @@ source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/MyEngine/Source Files" PREFIX "So
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/MyEngine/Header Files" PREFIX "Headers" FILES ${MAIN_HEADER_FILES})
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/MyEngine/Shaders" PREFIX "Shaders" FILES ${SHADER_FILES})
 source_group("External\\GLAD" FILES ${GLAD_SRC})
+source_group("External\\Lua" FILES ${LUA_SOURCES})
 source_group("External\\ImGui" FILES ${IMGUI_SOURCES})
 

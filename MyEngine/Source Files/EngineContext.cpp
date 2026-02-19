@@ -10,6 +10,7 @@
 #include "EditorContext.h"
 #include "JobSystem.h"
 #include "AssetManager.h"
+#include "InputManager.h"
 #include "Project.h"
 
 /**
@@ -40,6 +41,7 @@ EngineContext::EngineContext(int width, int height, const char* title)
     m_Coordinator->RegisterComponent<ColliderComponent>();
     m_Coordinator->RegisterComponent<BoxColliderComponent>();
     m_Coordinator->RegisterComponent<SphereColliderComponent>();
+    m_Coordinator->RegisterComponent<ScriptComponent>();
 
     SetState(EngineState::Launcher);
 }
@@ -57,6 +59,7 @@ void EngineContext::OnEngineLoaded()
     lightSystem = m_Coordinator->RegisterSystem<LightSystem>();
     physicsSystem = m_Coordinator->RegisterSystem<PhysicsSystem>();
     debugSystem = m_Coordinator->RegisterSystem<DebugGizmosSystem>();
+    scriptSystem = m_Coordinator->RegisterSystem<ScriptSystem>();
     
 
 
@@ -93,10 +96,16 @@ void EngineContext::OnEngineLoaded()
     m_Coordinator->SetSystemSignature<DebugGizmosSystem>(debugSignature);
     debugSystem->SetCoordinator(m_Coordinator);
     
+    Signature scriptSignature;
+    scriptSignature.set(m_Coordinator->GetComponentType<ScriptComponent>());
+    m_Coordinator->SetSystemSignature<ScriptSystem>(scriptSignature);
+    scriptSystem->SetCoordinator(m_Coordinator);
+    
     renderSystem->Init();
     lightSystem->Init();
     physicsSystem->Init();
     debugSystem->Init();
+    scriptSystem->Init();
 
     // 3. Setup Scene & Rendering Context
     m_Scene = new Scene(*m_Coordinator, renderSystem, cameraSystem);
@@ -204,6 +213,10 @@ void EngineContext::InitWindow(int width, int height, const char* title){
     glfwSetWindowUserPointer(m_Window, this);
     glfwSetScrollCallback(m_Window, EngineContext::ScrollCallback);
     
+    glfwSetKeyCallback(m_Window, [](GLFWwindow* m_Window, int key, int scancode, int action, int mods) {
+        InputManager::Get().UpdateKeyState(key, action);
+    });
+    
     std::cout << "OpenGL version: " << glGetString(GL_VERSION) << std::endl;
     std::cout << "GLSL version: " << glGetString(GL_SHADING_LANGUAGE_VERSION) << std::endl;
     
@@ -310,7 +323,7 @@ void EngineContext::Draw(){
 
             if(bControllingCamera) cameraSystem->ProcessInput(m_Window, m_DeltaTime);
             
-            
+            // Collision Debug Update In Edit
             if(m_State == EngineState::Edit){
                 if(m_EditorContext->GetSelectedEntity() != UINT32_MAX){
                     physicsSystem->UpdateBounds(m_EditorContext->GetSelectedEntity());
@@ -329,11 +342,13 @@ void EngineContext::Draw(){
                 }
             }
             
+            // Physics and Script Update In Play
             if(m_State == EngineState::Play){
                 physicsSystem->Update(m_DeltaTime);
-
+                scriptSystem->Update(m_DeltaTime);
             }
             
+            //Unbinding
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
             
             // Editor UI

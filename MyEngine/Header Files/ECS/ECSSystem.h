@@ -10,8 +10,16 @@
 #include <vector>
 #include "ECS.h"
 
+
+class Coordinator;
+
 class ECSSystem{
 public:
     virtual void Init(){};
     std::vector<Entity> mEntities;
+    void SetCoordinator(Coordinator* aCoordinator);
+
+protected:
+    Coordinator* m_Coordinator;
+
 };

@@ -17,7 +17,7 @@ class CameraSystem : public ECSSystem{
 public:
     void Init() override;
     void Update();
-    void SetCoordinator(Coordinator* aCoordinator){m_Coordinator = aCoordinator;}
+    
     glm::mat4 GetCameraProjection() const;
     
     void LookAt(const glm::vec3& target, const glm::vec3& up);
@@ -32,7 +32,6 @@ private:
     void ProcessKeyboardInput(GLFWwindow* aWindow, float aDeltaTime);
     void ProcessMouseInput(GLFWwindow* aWindow, float aDeltaTime);
 private:
-    Coordinator* m_Coordinator;
 
     float m_CurrentCameraSpeed = 2.5f;
     float m_MaxCameraSpeed = 15.f;

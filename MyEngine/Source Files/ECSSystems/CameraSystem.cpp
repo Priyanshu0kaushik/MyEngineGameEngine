@@ -7,6 +7,7 @@
 
 #include "ECSSystems/CameraSystem.h"
 #include "GLAD/include/glad/glad.h"
+#include "ECS/Coordinator.h"
 #include "glfw3.h"
 
 void CameraSystem::Init()
@@ -25,7 +26,7 @@ void CameraSystem::Init()
 
 void CameraSystem::Update()
 {
-    OnPlayMode();
+    
 }
 
 void CameraSystem::OnPlayMode()

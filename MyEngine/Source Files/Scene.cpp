@@ -18,7 +18,7 @@ Entity Scene::AddEntity(char* aName)
 {
     Entity e = m_Coordinator.CreateEntity();
 
-//     Add transform component
+//  Add transform component
     TransformComponent transform{};
     transform.position = {0.0f, 0.0f, 0.0f};
     transform.rotation = {0.0f, 0.0f, 0.0f};
@@ -103,7 +103,14 @@ void Scene::Save() {
             file << "SphereCollider: " << sphereCollider->radius << "\n";
         }
         
-        // 9. Mesh Component -- save at last
+        // 9. Script Component
+        if(auto* scriptComp = m_Coordinator.GetComponent<ScriptComponent>(entity))
+        {
+            // script path
+            file << "ScriptPath: " << scriptComp->scriptPath << "\n";
+        }
+        
+        // 10. Mesh Component -- save at last
         if (auto* mc = m_Coordinator.GetComponent<MeshComponent>(entity)) {
             if(mc->meshPath.empty()){
                 file << "MeshPath: " << "No Path" << "\n";
@@ -254,7 +261,17 @@ void Scene::Load(const std::string& filePath) {
             m_Coordinator.AddComponent<SphereColliderComponent>(currentEntity, sphere);
         }
         
-        // 9. Mesh Component
+        // 9. Script Component
+        else if (line.find("ScriptPath: ") == 0) {
+            std::cout<<"ScriptPath\n";
+            ScriptComponent script;
+            std::stringstream ss(line.substr(12));
+            
+            ss >> script.scriptPath;
+            m_Coordinator.AddComponent<ScriptComponent>(currentEntity, script);
+        }
+        
+        // 10. Mesh Component
         else if (line.find("MeshPath: ") == 0) {
             MeshComponent mc;
             mc.meshPath = line.substr(10);

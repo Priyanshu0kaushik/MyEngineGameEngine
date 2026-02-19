@@ -22,6 +22,7 @@ private:
     void ShowRigidBodyComponent();
     void ShowBoxColliderComponent();
     void ShowSphereColliderComponent();
+    void ShowScriptComponent();
     
     void RenameRender();
     void ShowMaterialSetting(Material& material);

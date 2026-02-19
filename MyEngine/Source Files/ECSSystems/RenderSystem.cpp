@@ -135,6 +135,8 @@ glm::mat4 RenderSystem::BuildModelMatrix(TransformComponent* t)
 
 void RenderSystem::Render(Shader& shader)
 {
+    if(!m_Coordinator) return;
+    
     for (Entity e : mEntities)
     {
         TransformComponent* transform = m_Coordinator->GetComponent<TransformComponent>(e);

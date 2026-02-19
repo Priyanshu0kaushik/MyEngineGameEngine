@@ -205,26 +205,28 @@ void EditorContext::ShowViewport(){
         ImGui::SetWindowFocus();
     }
     
-    // Draw Transform Gizmos
-    DrawGizmos(viewportMin, viewportSize);
+    // Draw Gizmos and Control Camera In Edit Mode Only
+    if(m_EngineContext->GetState() == EngineState::Edit){
+        DrawGizmos(viewportMin, viewportSize);
+        if (!bCameraCapturing) ProcessGizmosInput();
+        
+        bool viewportFocused = ImGui::IsWindowHovered();
+        bool rightMouseDown = ImGui::IsMouseDown(ImGuiMouseButton_Right);
+        
+        if (!bCameraCapturing && viewportFocused && rightMouseDown) {
+            bCameraCapturing = true;
+            m_EngineContext->OnStartControlCam();
+            glfwSetInputMode(m_EngineContext->GetWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+            ImGui::SetMouseCursor(ImGuiMouseCursor_None);
+        }
+        else if (!rightMouseDown && bCameraCapturing) {
+            bCameraCapturing = false;
+            m_EngineContext->OnReleaseCamControl();
+            glfwSetInputMode(m_EngineContext->GetWindow(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        }
 
-    
-    if (!bCameraCapturing) ProcessGizmosInput();
-
-    bool viewportFocused = ImGui::IsWindowHovered();
-    bool rightMouseDown = ImGui::IsMouseDown(ImGuiMouseButton_Right);
-    
-    if (!bCameraCapturing && viewportFocused && rightMouseDown) {
-        bCameraCapturing = true;
-        m_EngineContext->OnStartControlCam();
-        glfwSetInputMode(m_EngineContext->GetWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-        ImGui::SetMouseCursor(ImGuiMouseCursor_None);
     }
-    else if (!rightMouseDown && bCameraCapturing) {
-        bCameraCapturing = false;
-        m_EngineContext->OnReleaseCamControl();
-        glfwSetInputMode(m_EngineContext->GetWindow(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-    }
+    
     ImGui::End();
 }
 

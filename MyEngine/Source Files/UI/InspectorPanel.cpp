@@ -11,6 +11,8 @@
 #include "Scene.h"
 #include "ShaderManager.h"
 #include <filesystem>
+#include <algorithm>
+
 
 void InspectorPanel::Draw(EditorDrawContext &context)
 {
@@ -38,6 +40,8 @@ void InspectorPanel::Draw(EditorDrawContext &context)
         ShowSphereColliderComponent();
         ImGui::Spacing();
         ShowLightComponent();
+        ImGui::Spacing();
+        ShowScriptComponent();
         
         
         ImGui::Spacing();
@@ -212,6 +216,55 @@ void InspectorPanel::ShowMeshComponent()
     
 }
 
+void InspectorPanel::ShowScriptComponent()
+{
+    ScriptComponent* script = m_Context.coordinator->GetComponent<ScriptComponent>(*m_Context.selectedEntity);
+    if(!script) return;
+    
+    if (ImGui::CollapsingHeader("Script Component", ImGuiTreeNodeFlags_DefaultOpen))
+    {
+        ImGui::BeginGroup();
+        
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
+        
+        ImGui::Spacing();
+        
+        ImGui::TextWrapped("Change Script");
+        
+        ImGui::Button(script->scriptPath.empty() ? "None" : "Script", ImVec2(64, 64));
+        
+        if (ImGui::BeginDragDropTarget()) {
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
+            {
+                const char* assetPath = (const char*)payload->Data;
+                
+                std::filesystem::path filePath(assetPath);
+                if (!filePath.has_extension()) return;
+                
+                std::string lowerStr = filePath.extension().string();
+                std::transform(lowerStr.begin(), lowerStr.end(), lowerStr.begin(), ::tolower);
+                std::cout<< lowerStr<<std::endl;
+                if(lowerStr == ".lua") script->scriptPath = assetPath;
+                
+                std::cout << "Dropped : " << script->scriptPath << std::endl;
+            }
+            ImGui::EndDragDropTarget();
+            
+        }
+        
+
+        ImGui::PopStyleVar();
+        ImGui::PopStyleColor();
+        ImGui::EndGroup();
+        
+        ImGui::Spacing();
+        RemoveComponentButton<ScriptComponent>();
+        ImGui::Separator();
+    }
+
+}
+
 void InspectorPanel::ShowCameraComponent()
 {
     CameraComponent* cam = m_Context.coordinator->GetComponent<CameraComponent>(*m_Context.selectedEntity);
@@ -361,7 +414,8 @@ void InspectorPanel::DrawAssetSlot(const char* Name, std::string &path, uint32_t
 
     if (Type == AssetType::Texture && iD != UINT32_MAX) {
         ImGui::Image((ImTextureID)(uintptr_t)openGLHandle, ImVec2(40, 40), ImVec2(0, 1), ImVec2(1, 0), ImVec4(1,1,1,1), ImVec4(1,1,1,0.2f));
-    } else {
+    }
+    else {
         ImGui::Button(path.empty() ? "None" : "FILE", ImVec2(64, 64));
     }
 

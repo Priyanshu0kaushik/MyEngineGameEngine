@@ -17,8 +17,10 @@ void LightSystem::Init()
 {
 }
 
-void LightSystem::Render(Shader &shader){
-
+void LightSystem::Render(Shader &shader)
+{
+    if(!m_Coordinator) return;
+    
     std::vector<glm::vec4> positions;
     std::vector<glm::vec4> diffuses;
     std::vector<glm::vec4> speculars;

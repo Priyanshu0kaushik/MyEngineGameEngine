@@ -13,6 +13,7 @@
 #include "ECSSystems/LightSystem.h"
 #include "ECSSystems/PhysicsSystem.h"
 #include "ECSSystems/DebugGizmosSystem.h"
+#include "ECSSystems/ScriptSystem.h"
 #include "AssetData.h"
 #include "ECS/Coordinator.h"
 #include "MessageQueue.h"
@@ -92,6 +93,7 @@ private:
     std::shared_ptr<LightSystem> lightSystem;
     std::shared_ptr<PhysicsSystem> physicsSystem;
     std::shared_ptr<DebugGizmosSystem> debugSystem;
+    std::shared_ptr<ScriptSystem> scriptSystem;
     
     
     float m_ViewportWidth, m_ViewportHeight;

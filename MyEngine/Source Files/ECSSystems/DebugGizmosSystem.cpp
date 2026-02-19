@@ -6,6 +6,7 @@
 //
 
 #include "ECSSystems/DebugGizmosSystem.h"
+#include "ECS/Coordinator.h"
 #include "GLAD/include/glad/glad.h"
 
 void DebugGizmosSystem::Init()
@@ -29,6 +30,7 @@ void DebugGizmosSystem::Init()
 
 void DebugGizmosSystem::Update(Entity selectedEntity)
 {
+    if(!m_Coordinator) return;
     if(!showAllCollision)
     {
         ColliderComponent* collider = m_Coordinator->GetComponent<ColliderComponent>(selectedEntity);

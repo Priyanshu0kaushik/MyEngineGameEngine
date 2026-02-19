@@ -21,7 +21,6 @@ public:
     void Init() override;
     void Update(Entity selectedEntity);
     void Render();
-    void SetCoordinator(Coordinator* aCoordinator){m_Coordinator = aCoordinator;}
     
 private:
     void DrawSphereCollision(const Entity& entity);
@@ -32,8 +31,6 @@ private:
     
 private:
     std::vector<LineVertex> lineVertices;
-    
-    Coordinator* m_Coordinator;
     unsigned int lineVBO, lineVAO;
     
     bool showAllCollision = false;
