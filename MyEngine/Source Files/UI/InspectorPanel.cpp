@@ -42,6 +42,8 @@ void InspectorPanel::Draw(EditorDrawContext &context)
         ShowLightComponent();
         ImGui::Spacing();
         ShowScriptComponent();
+        ImGui::Spacing();
+        ShowTerrainComponent();
         
         
         ImGui::Spacing();
@@ -118,7 +120,7 @@ void InspectorPanel::ShowTransformComponent()
 {
     TransformComponent* tc = m_Context.coordinator->GetComponent<TransformComponent>(*m_Context.selectedEntity);
     if(!tc) return;
-    if (ImGui::CollapsingHeader(" Transform", ImGuiTreeNodeFlags_DefaultOpen))
+    if (ImGui::CollapsingHeader("Transform", ImGuiTreeNodeFlags_DefaultOpen))
     {
         ImGui::Spacing();
         
@@ -143,47 +145,99 @@ void InspectorPanel::ShowTransformComponent()
 
 }
 
+void InspectorPanel::ShowTerrainComponent()
+{
+    TerrainComponent* terrain = m_Context.coordinator->GetComponent<TerrainComponent>(*m_Context.selectedEntity);
+    if(!terrain) return;
+    
+    if (ImGui::CollapsingHeader("Terrain Component", ImGuiTreeNodeFlags_DefaultOpen))
+    {
+        ImGui::BeginGroup();
+        
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
+        
+        ImGui::Spacing();
+        
+        DrawAssetSlot("Main Texture", terrain->mainTexturePath, terrain->mainTexturnId, AssetType::Texture);
+        UpdateAssetSlot(terrain->mainTexturePath, terrain->mainTexturnId);
+
+        
+        ImGui::TextWrapped("Change HeightMap");
+        
+        ImGui::Button(terrain->heightmapPath.empty() ? "None" : "File", ImVec2(64, 64));
+        
+        if (ImGui::BeginDragDropTarget()) {
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
+            {
+                const char* assetPath = (const char*)payload->Data;
+                
+                std::filesystem::path filePath(assetPath);
+                if (!filePath.has_extension()) return;
+                
+                std::string lowerStr = filePath.extension().string();
+                std::transform(lowerStr.begin(), lowerStr.end(), lowerStr.begin(), ::tolower);
+                std::cout<< lowerStr<<std::endl;
+                if(lowerStr == ".png") terrain->heightmapPath = assetPath;
+                
+                std::cout << "Dropped : " << terrain->heightmapPath << std::endl;
+            }
+            ImGui::EndDragDropTarget();
+            
+        }
+        
+        ImGui::PopStyleVar();
+        ImGui::PopStyleColor();
+        ImGui::EndGroup();
+        
+        ImGui::Spacing();
+        RemoveComponentButton<TerrainComponent>();
+        ImGui::Separator();
+    }
+    
+}
+
 void InspectorPanel::ShowLightComponent()
 {
     LightComponent* light = m_Context.coordinator->GetComponent<LightComponent>(*m_Context.selectedEntity);
-    if (light) {
-        if (ImGui::TreeNodeEx((void*)typeid(LightComponent).hash_code(), ImGuiTreeNodeFlags_DefaultOpen, "Light Component")) {
-            
-            const char* lightTypes[] = { "Directional", "Point", "Spot" };
-            int currentType = (int)light->type;
-            if (ImGui::Combo("Light Type", &currentType, lightTypes, IM_ARRAYSIZE(lightTypes))) {
-                light->type = (LightType)currentType;
-            }
-
-            ImGui::Separator();
-
-            ImGui::ColorEdit3("Light Color", glm::value_ptr(light->color));
-            ImGui::DragFloat("Intensity", &light->intensity, 0.1f, 0.0f, 100.0f);
-
-            if (light->type != LightType::Directional) {
-                ImGui::Text("Attenuation Factors");
-                ImGui::DragFloat("Constant", &light->constant, 0.01f, 0.0f, 1.0f);
-                ImGui::DragFloat("Linear", &light->linear, 0.001f, 0.0f, 1.0f);
-                ImGui::DragFloat("Quadratic", &light->quadratic, 0.0001f, 0.0f, 1.0f);
-            }
-
-            if (light->type == LightType::Spot) {
-                ImGui::Text("Spotlight Settings");
-            }
-
-            ImGui::TreePop();
+    if (!light) return;
+    
+    if (ImGui::TreeNodeEx((void*)typeid(LightComponent).hash_code(), ImGuiTreeNodeFlags_DefaultOpen, "Light Component"))
+    {
+        
+        const char* lightTypes[] = { "Directional", "Point", "Spot" };
+        int currentType = (int)light->type;
+        if (ImGui::Combo("Light Type", &currentType, lightTypes, IM_ARRAYSIZE(lightTypes))) {
+            light->type = (LightType)currentType;
         }
-        RemoveComponentButton<LightComponent>();
+
         ImGui::Separator();
 
+        ImGui::ColorEdit3("Light Color", glm::value_ptr(light->color));
+        ImGui::DragFloat("Intensity", &light->intensity, 0.1f, 0.0f, 100.0f);
+
+        if (light->type != LightType::Directional) {
+            ImGui::Text("Attenuation Factors");
+            ImGui::DragFloat("Constant", &light->constant, 0.01f, 0.0f, 1.0f);
+            ImGui::DragFloat("Linear", &light->linear, 0.001f, 0.0f, 1.0f);
+            ImGui::DragFloat("Quadratic", &light->quadratic, 0.0001f, 0.0f, 1.0f);
+        }
+
+        if (light->type == LightType::Spot) {
+            ImGui::Text("Spotlight Settings");
+        }
+
+        ImGui::TreePop();
     }
+    RemoveComponentButton<LightComponent>();
+    ImGui::Separator();
+
 }
 
 void InspectorPanel::ShowMeshComponent()
 {
-    if(!m_Context.coordinator->GetComponent<MeshComponent>(*m_Context.selectedEntity)) return;
-    
     MeshComponent* mesh = m_Context.coordinator->GetComponent<MeshComponent>(*m_Context.selectedEntity);
+    if(!mesh) return;
     
     if (ImGui::CollapsingHeader("Mesh Component", ImGuiTreeNodeFlags_DefaultOpen)){
         

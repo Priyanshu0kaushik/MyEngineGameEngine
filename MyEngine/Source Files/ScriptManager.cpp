@@ -36,7 +36,17 @@ void ScriptManager::Init()
 
     m_Lua.new_usertype<glm::vec3>("vec3",
         sol::constructors<glm::vec3(), glm::vec3(float, float, float)>(),
-        "x", &glm::vec3::x, "y", &glm::vec3::y, "z", &glm::vec3::z
+        "x", &glm::vec3::x,
+        "y", &glm::vec3::y,
+        "z", &glm::vec3::z,
+        // Addition
+        sol::meta_function::addition, [](const glm::vec3& a, const glm::vec3& b) { return a + b; },
+        // Subtraction
+        sol::meta_function::subtraction, [](const glm::vec3& a, const glm::vec3& b) { return a - b; },
+        // Multiplication (vec3 * float)
+        sol::meta_function::multiplication, [](const glm::vec3& a, float b) { return a * b; },
+        // Unary Minus (-vec3)
+        sol::meta_function::unary_minus, [](const glm::vec3& a) { return -a; }
     );
 
     m_Lua.new_usertype<TransformComponent>("Transform",
@@ -44,6 +54,9 @@ void ScriptManager::Init()
         "rotation", &TransformComponent::rotation,
         "scale", &TransformComponent::scale,
         "isDirty", &TransformComponent::isDirty,
+        "GetForward", &TransformComponent::GetForward,
+        "GetRight", &TransformComponent::GetRight,
+        "GetUp", &TransformComponent::GetUp,
         "SetPosition", &TransformComponent::SetPosition,
         "SetRotation", &TransformComponent::SetRotation,
         "SetScale", &TransformComponent::SetScale

@@ -7,6 +7,7 @@
 
 #include "ECSSystems/PhysicsSystem.h"
 #include "ECS/Coordinator.h"
+#include "ECSSystems/TerrainSystem.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -19,47 +20,58 @@ void PhysicsSystem::Init()
 void PhysicsSystem::Update(float deltaTime)
 {
     if(!m_Coordinator) return;
-    
-    // Update position and velocity for all dynamic bodies
+        
     for(Entity& entity : mEntities)
     {
-        RigidBodyComponent* rigidBody = m_Coordinator->GetComponent<RigidBodyComponent>(entity);
-        TransformComponent* transform = m_Coordinator->GetComponent<TransformComponent>(entity);
-        if(!rigidBody || !transform) continue;
-        
-        // Update Bounding Volume (AABB/OBB) to match new Transform
-        if(m_Coordinator->GetComponent<ColliderComponent>(entity))
-        {
+        RigidBodyComponent* rb = m_Coordinator->GetComponent<RigidBodyComponent>(entity);
+        TransformComponent* trans = m_Coordinator->GetComponent<TransformComponent>(entity);
+        if(!rb || !trans || rb->isStatic) continue;
+
+        // 1. gravity & acceleration
+        if(!rb->isKinematic) {
+            float gravity = -9.81f * rb->gravityScale;
+            rb->velocity.y += gravity * deltaTime;
+        }
+        rb->velocity += rb->acceleration * deltaTime;
+
+        // 2. applying damping
+        float damping = std::pow(0.98f, deltaTime * 60.0f);
+        rb->velocity *= damping;
+
+        glm::vec3 nextPos = trans->position + (rb->velocity * deltaTime);
+
+        // 4. terrain collision (for now we can only have one terrain)
+        Entity terrainEntity = m_TerrainSystem->GetTerrainEntity();
+        if (terrainEntity != UINT32_MAX) {
+            float groundHeight = m_TerrainSystem->GetHeightAt(terrainEntity, nextPos.x, nextPos.z);
+            
+            float colliderOffset = 0.0f;
+            if(auto* box = m_Coordinator->GetComponent<BoxColliderComponent>(entity)) {
+                colliderOffset = box->extents.y;
+            }
+
+            if (nextPos.y - colliderOffset <= groundHeight + 0.001f)
+            {
+                nextPos.y = groundHeight + colliderOffset;
+                if (rb->velocity.y < 0) {
+                    rb->velocity.y = 0;
+                }
+
+                rb->velocity.x *= 0.95f;
+                rb->velocity.z *= 0.95f;
+            }
+        }
+
+        trans->SetPosition(nextPos);
+
+        // acc reset
+        rb->acceleration = glm::vec3(0.0f);
+        if (glm::length(rb->velocity) < 0.01f) rb->velocity = glm::vec3(0.0f);
+
+        // Update Bounding Boxes 
+        if(m_Coordinator->GetComponent<ColliderComponent>(entity)) {
             UpdateBounds(entity);
         }
-        
-        if(rigidBody->isStatic) continue;
-        
-        // Handle Dynamic Objects
-        if(!rigidBody->isKinematic)
-        {
-            // Apply Gravity
-            float gravity = -9.81f * rigidBody->gravityScale;
-            rigidBody->velocity.y += gravity * deltaTime;
-            
-        }
-        
-        rigidBody->velocity += rigidBody->acceleration * deltaTime;
-        
-        if (glm::length(rigidBody->velocity) > 0.0001f)
-        {
-            glm::vec3 newPos = transform->position + (rigidBody->velocity * deltaTime);
-            transform->SetPosition(newPos);
-            
-        }
- 
-         
-        rigidBody->acceleration = glm::vec3(0.0f);
-
-        float damping = std::pow(0.98f, deltaTime * 60.0f);
-        rigidBody->velocity *= damping;
-        
-        if (glm::length(rigidBody->velocity) < 0.01f) rigidBody->velocity = glm::vec3(0.0f);
     }
     
     // COLLISION DETECTION

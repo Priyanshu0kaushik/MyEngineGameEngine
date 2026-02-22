@@ -38,6 +38,23 @@ struct TransformComponent
         scale = newScale;
         isDirty = true;
     }
+    glm::vec3 GetForward() const {
+        glm::vec3 forward;
+        forward.x = sin(glm::radians(rotation.y)) * cos(glm::radians(rotation.x));
+        forward.y = -sin(glm::radians(rotation.x));
+        forward.z = cos(glm::radians(rotation.y)) * cos(glm::radians(rotation.x));
+        return glm::normalize(forward);
+    }
+
+    // Right Vector (Forward ke perpendicular)
+    glm::vec3 GetRight() const {
+        return glm::normalize(glm::cross(GetForward(), glm::vec3(0, 1, 0)));
+    }
+
+    // Up Vector
+    glm::vec3 GetUp() const {
+        return glm::normalize(glm::cross(GetRight(), GetForward()));
+    }
     
     static constexpr const char* TypeName = "Transform Component";
     static constexpr const bool UniquePerEntity = true;
@@ -177,5 +194,30 @@ struct ScriptComponent
     sol::protected_function onCreate;
     
     static constexpr const char* TypeName = "Script Component";
+    static constexpr const bool UniquePerEntity = true;
+};
+
+struct TerrainComponent {
+    std::string heightmapPath, mainTexturePath;
+    
+    int width = 0;
+    int height = 0;
+    
+    float terrainScale = 2.0f;
+    float maxHeight = 20.0f;
+    
+    std::vector<float> heightData;
+
+    unsigned int VAO = 0;
+    unsigned int VBO = 0;
+    unsigned int EBO = 0;
+    unsigned int indexCount = 0;
+
+    unsigned int textureID = 0;
+    
+    uint32_t mainTexturnId = UINT32_MAX;
+    
+    bool isInitialized = false;
+    static constexpr const char* TypeName = "Terrain Component";
     static constexpr const bool UniquePerEntity = true;
 };

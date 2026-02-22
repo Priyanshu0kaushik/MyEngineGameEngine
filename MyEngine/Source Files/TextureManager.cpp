@@ -58,6 +58,11 @@ uint32_t TextureManager::CreateTexture(TextureData* textureData)
     return id;
 }
 
+unsigned char* TextureManager::LoadRawData(const std::string& path, int& width, int& height, int& channels) {
+    stbi_set_flip_vertically_on_load(true);
+    return stbi_load(path.c_str(), &width, &height, &channels, 1);
+}
+
 AssetHandle TextureManager::GetTexture(uint32_t textureId){
     AssetHandle result;
     if(textureId==UINT32_MAX){

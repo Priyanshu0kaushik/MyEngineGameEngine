@@ -42,6 +42,8 @@ EngineContext::EngineContext(int width, int height, const char* title)
     m_Coordinator->RegisterComponent<BoxColliderComponent>();
     m_Coordinator->RegisterComponent<SphereColliderComponent>();
     m_Coordinator->RegisterComponent<ScriptComponent>();
+    m_Coordinator->RegisterComponent<TerrainComponent>();
+    
 
     SetState(EngineState::Launcher);
 }
@@ -60,6 +62,7 @@ void EngineContext::OnEngineLoaded()
     physicsSystem = m_Coordinator->RegisterSystem<PhysicsSystem>();
     debugSystem = m_Coordinator->RegisterSystem<DebugGizmosSystem>();
     scriptSystem = m_Coordinator->RegisterSystem<ScriptSystem>();
+    terrainSystem = m_Coordinator->RegisterSystem<TerrainSystem>();
     
 
 
@@ -101,11 +104,19 @@ void EngineContext::OnEngineLoaded()
     m_Coordinator->SetSystemSignature<ScriptSystem>(scriptSignature);
     scriptSystem->SetCoordinator(m_Coordinator);
     
+    Signature terrainSignature;
+    terrainSignature.set(m_Coordinator->GetComponentType<TerrainComponent>());
+    terrainSignature.set(m_Coordinator->GetComponentType<TransformComponent>());
+    m_Coordinator->SetSystemSignature<TerrainSystem>(terrainSignature);
+    terrainSystem->SetCoordinator(m_Coordinator);
+    
     renderSystem->Init();
     lightSystem->Init();
     physicsSystem->Init();
     debugSystem->Init();
     scriptSystem->Init();
+    
+    physicsSystem->SetTerrainSystem(terrainSystem);
 
     // 3. Setup Scene & Rendering Context
     m_Scene = new Scene(*m_Coordinator, renderSystem, cameraSystem);
@@ -317,6 +328,7 @@ void EngineContext::Draw(){
                 mainShader->SetInt("shadowMap", 3);
                 
                 // Draw Scene
+                terrainSystem->Render(*mainShader);
                 renderSystem->Render(*mainShader);
                 lightSystem->Render(*mainShader);
             }

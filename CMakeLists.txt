@@ -21,7 +21,19 @@ FetchContent_Declare(
     GIT_TAG        main
 )
 
-FetchContent_MakeAvailable(glm sol2)
+FetchContent_Declare(
+    freetype
+    GIT_REPOSITORY https://github.com/freetype/freetype.git
+    GIT_TAG        VER-2-14-1 
+)
+
+set(FT_WITH_ZLIB OFF CACHE BOOL "" FORCE)
+set(FT_WITH_BZIP2 OFF CACHE BOOL "" FORCE)
+set(FT_WITH_PNG OFF CACHE BOOL "" FORCE)
+set(FT_WITH_HARFBUZZ OFF CACHE BOOL "" FORCE)
+
+
+FetchContent_MakeAvailable(glm sol2 freetype)
 
 set(LUA_PATH "${CMAKE_CURRENT_SOURCE_DIR}/MyEngine/External/Lua")
 file(GLOB LUA_SOURCES "${LUA_PATH}/*.c")
@@ -72,7 +84,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     "${LUA_PATH}"
 )
 
-target_link_libraries(${PROJECT_NAME} PRIVATE Lua sol2 glm::glm)
+target_link_libraries(${PROJECT_NAME} PRIVATE Lua sol2 glm::glm freetype)
 
 if(APPLE)
     set(GLFW_LIB "${CMAKE_CURRENT_SOURCE_DIR}/MyEngine/External/GLFW/lib-mac/libglfw3.a")

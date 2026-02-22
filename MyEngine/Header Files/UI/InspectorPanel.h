@@ -23,6 +23,7 @@ private:
     void ShowBoxColliderComponent();
     void ShowSphereColliderComponent();
     void ShowScriptComponent();
+    void ShowTerrainComponent();
     
     void RenameRender();
     void ShowMaterialSetting(Material& material);

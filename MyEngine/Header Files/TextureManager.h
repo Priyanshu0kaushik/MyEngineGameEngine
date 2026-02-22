@@ -15,8 +15,10 @@
 class TextureManager
 {
 public:
-    TextureManager();    
+    TextureManager();
     bool LoadTexture(const std::string& path, TextureData* target);
+    
+    unsigned char* LoadRawData(const std::string& path, int& width, int& height, int& channels);
     AssetHandle GetTexture(uint32_t textureId);
     AssetHandle GetTexture(const std::string& path);
     std::unordered_map<std::string, uint32_t>& GetAllTextures(){return m_PathToID;}

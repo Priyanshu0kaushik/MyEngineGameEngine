@@ -14,6 +14,7 @@
 #include "ECSSystems/PhysicsSystem.h"
 #include "ECSSystems/DebugGizmosSystem.h"
 #include "ECSSystems/ScriptSystem.h"
+#include "ECSSystems/TerrainSystem.h"
 #include "AssetData.h"
 #include "ECS/Coordinator.h"
 #include "MessageQueue.h"
@@ -94,6 +95,7 @@ private:
     std::shared_ptr<PhysicsSystem> physicsSystem;
     std::shared_ptr<DebugGizmosSystem> debugSystem;
     std::shared_ptr<ScriptSystem> scriptSystem;
+    std::shared_ptr<TerrainSystem> terrainSystem;
     
     
     float m_ViewportWidth, m_ViewportHeight;
