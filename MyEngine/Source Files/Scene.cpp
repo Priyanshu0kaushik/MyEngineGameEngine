@@ -32,10 +32,15 @@ Entity Scene::AddEntity(char* aName)
 void Scene::Save() {
     const std::string& filePath = Project::GetActiveAbsoluteScenePath();
     std::ofstream file(filePath);
+    std::cout<< "\n" << filePath<<std::endl;
     if (!file.is_open()) return;
 
     auto allEntities = m_Coordinator.GetAliveEntities();
-
+        
+    file << "[SceneConfig]\n";
+    file << "BGColor: " << bgColor.r << " " << bgColor.g << " " << bgColor.b << " " << bgColor.a << "\n";
+    file << "[EndSceneConfig]\n\n";
+    
     for (auto entity : allEntities) {
         auto* nc = m_Coordinator.GetComponent<NameComponent>(entity);
         if (nc && nc->Name == "Editor Camera") {
@@ -117,7 +122,29 @@ void Scene::Save() {
             << " " << terrainComp->mainTexturePath << "\n";
         }
         
-        // 11. Mesh Component -- save at last
+        // 11. Base Ui Component
+        if(auto* baseUi = m_Coordinator.GetComponent<UIBaseComponent>(entity))
+        {
+            file << "UIBase: " << baseUi->position.x << " " << baseUi->position.y << " "
+                 << baseUi->zOrder << " " << baseUi->isVisible << "\n";
+        }
+
+        // 12. Text Component
+        if(auto* textComp = m_Coordinator.GetComponent<UITextComponent>(entity))
+        {
+            file << "UIText: " << textComp->text << " | " << textComp->scale << " "
+                 << textComp->color.r << " " << textComp->color.g << " " << textComp->color.b << "\n";
+        }
+        
+        // 13. Button Component
+        if(auto* btnComp = m_Coordinator.GetComponent<UIButtonComponent>(entity))
+        {
+            file << "UIButton: " << btnComp->size.x << " " << btnComp->size.y << " "
+                 << btnComp->normalColor.r << " " << btnComp->normalColor.g << " " << btnComp->normalColor.b << " "
+                 << btnComp->hoverColor.r << " " << btnComp->hoverColor.g << " " << btnComp->hoverColor.b << "\n";
+        }
+        
+        // 14. Mesh Component -- save at last
         if (auto* mc = m_Coordinator.GetComponent<MeshComponent>(entity)) {
             if(mc->meshPath.empty()){
                 file << "MeshPath: " << "No Path" << "\n";
@@ -165,8 +192,20 @@ void Scene::Load(const std::string& filePath) {
     std::string line;
     Entity currentEntity = 0;
     bool entityCreated = false;
+    
 
-    while (std::getline(file, line)) {
+    while (std::getline(file, line))
+    {
+        if (line == "[SceneConfig]") {
+            while (std::getline(file, line) && line != "[EndSceneConfig]") {
+                if (line.find("BGColor: ") == 0) {
+                    std::stringstream ss(line.substr(9));
+                    ss >> bgColor.r >> bgColor.g >> bgColor.b >> bgColor.a;
+                }
+            }
+            continue;
+        }
+        
         if (line == "[Entity]") {
             currentEntity = m_Coordinator.CreateEntity();
             entityCreated = true;
@@ -207,25 +246,26 @@ void Scene::Load(const std::string& filePath) {
         }
         
         // 4. Camera Component
-        else if (line.find("Component: Camera") == 0) {
+        else if (line.find("Cam_Settings: ") == 0) {
             CameraComponent cc;
-            std::string camLine;
-            while (std::getline(file, camLine) && camLine != "[EndEntity]") {
-                std::stringstream ss(camLine);
-                std::string tag;
-                ss >> tag;
-                if (tag == "Cam_Settings:") ss >> cc.Fov >> cc.Near >> cc.Far >> cc.AspectRatio;
-                else if (tag == "Cam_Orientation:") ss >> cc.Yaw >> cc.Pitch;
-                else if (tag == "Cam_State:") ss >> cc.IsPrimary;
-                if (file.peek() == '[') break;
-            }
+            std::stringstream ss(line.substr(14));
+            ss >> cc.Fov >> cc.Near >> cc.Far >> cc.AspectRatio;
             m_Coordinator.AddComponent<CameraComponent>(currentEntity, cc);
+        }
+        else if (line.find("Cam_Orientation: ") == 0) {
+            auto* cc = m_Coordinator.GetComponent<CameraComponent>(currentEntity);
+            std::stringstream ss(line.substr(17));
+            ss >> cc->Yaw >> cc->Pitch;
+        }
+        else if (line.find("Cam_State: ") == 0) {
+            auto* cc = m_Coordinator.GetComponent<CameraComponent>(currentEntity);
+            std::stringstream ss(line.substr(11));
+            ss >> cc->IsPrimary;
         }
         
         // 5. RigidBody Component
         else if (line.find("RigidBody: ") == 0)
         {
-            std::cout<<"RigidBody\n";
             RigidBodyComponent rb;
             std::stringstream ss(line.substr(11));
             ss >> rb.mass >> rb.gravityScale >> rb.isStatic >> rb.isKinematic;
@@ -235,7 +275,6 @@ void Scene::Load(const std::string& filePath) {
         
         // 6. Collider
         else if (line.find("Collider: ") == 0) {
-            std::cout<<"Collider\n";
             ColliderComponent col;
             int typeInt, triggerInt;
             std::stringstream ss(line.substr(10));
@@ -250,7 +289,6 @@ void Scene::Load(const std::string& filePath) {
         
         // 7. Box Collider
         else if (line.find("BoxCollider: ") == 0) {
-            std::cout<<"BoxCollider\n";
             BoxColliderComponent box;
             std::stringstream ss(line.substr(13));
             
@@ -260,7 +298,6 @@ void Scene::Load(const std::string& filePath) {
         
         // 8. Sphere Collider
         else if (line.find("SphereCollider: ") == 0) {
-            std::cout<<"SphereCollider\n";
             SphereColliderComponent sphere;
             std::stringstream ss(line.substr(16));
             
@@ -270,7 +307,6 @@ void Scene::Load(const std::string& filePath) {
         
         // 9. Script Component
         else if (line.find("ScriptPath: ") == 0) {
-            std::cout<<"ScriptPath\n";
             ScriptComponent script;
             std::stringstream ss(line.substr(12));
             
@@ -279,7 +315,6 @@ void Scene::Load(const std::string& filePath) {
         }
         
         // 10. Terrain Component
-        
         else if(line.find("HeightmapPath: ") == 0)
         {
             TerrainComponent terrainComp;
@@ -290,7 +325,48 @@ void Scene::Load(const std::string& filePath) {
             m_Coordinator.AddComponent<TerrainComponent>(currentEntity, terrainComp);
         }
         
-        // 11. Mesh Component
+        // 11. UI Base Component
+        else if (line.find("UIBase: ") == 0)
+        {
+            UIBaseComponent baseUi;
+            std::stringstream ss(line.substr(8));
+            ss >> baseUi.position.x >> baseUi.position.y >> baseUi.zOrder >> baseUi.isVisible;
+            m_Coordinator.AddComponent<UIBaseComponent>(currentEntity, baseUi);
+        }
+
+        // 12. Text Component
+        else if (line.find("UIText: ") == 0)
+        {
+            UITextComponent textComp;
+            std::string data = line.substr(8);
+            
+            size_t pos = data.find(" | ");
+            if (pos != std::string::npos) {
+                textComp.text = data.substr(0, pos);
+                std::stringstream ss(data.substr(pos + 3));
+                ss >> textComp.scale >> textComp.color.r >> textComp.color.g >> textComp.color.b;
+            }
+            
+            m_Coordinator.AddComponent<UITextComponent>(currentEntity, textComp);
+        }
+
+        // 13. Button Component
+        else if (line.find("UIButton: ") == 0)
+        {
+            UIButtonComponent btnComp;
+            std::stringstream ss(line.substr(10));
+            
+            ss >> btnComp.size.x >> btnComp.size.y
+               >> btnComp.normalColor.r >> btnComp.normalColor.g >> btnComp.normalColor.b
+               >> btnComp.hoverColor.r >> btnComp.hoverColor.g >> btnComp.hoverColor.b;
+            
+            btnComp.isHovered = false;
+            btnComp.isPressed = false;
+
+            m_Coordinator.AddComponent<UIButtonComponent>(currentEntity, btnComp);
+        }
+        
+        // 14. Mesh Component
         else if (line.find("MeshPath: ") == 0) {
             MeshComponent mc;
             mc.meshPath = line.substr(10);
@@ -407,6 +483,16 @@ void Scene::RenameEntity(Entity e, const char* newName)
             else count++;
         }
     }
+}
+
+Entity Scene::FindEntityByName(const std::string& aName)
+{
+    auto allEntities = m_Coordinator.GetAliveEntities();
+    for (auto e : allEntities) {
+        auto* nc = m_Coordinator.GetComponent<NameComponent>(e);
+        if (nc && nc->Name == aName) return e;
+    }
+    return UINT32_MAX;
 }
 
 int Scene::NameExistCount(Entity e, const char* aName){

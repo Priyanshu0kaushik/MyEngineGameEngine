@@ -82,6 +82,18 @@ void ContentBrowserPanel::Draw(EditorDrawContext& context)
                 if (isDirectory) m_CurrentDirectory /= path.filename();
                 else std::cout << "Selected Asset: " << filenameString << std::endl;
             }
+            
+            if (!isDirectory && ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+            {
+                if (extension == ".melevel")
+                {
+                    std::string relativePath = std::filesystem::relative(path, Project::GetAssetDirectory()).string();
+                    
+                    std::cout << "Double Clicked Scene: " << relativePath << std::endl;
+
+                    context.engine->RequestSceneChange(relativePath);
+                }
+            }
         }
         else
         {

@@ -8,21 +8,27 @@
 
 #include "GLAD/include/glad/glad.h"
 #include "glfw3.h"
-#include "ECSSystems/RenderSystem.h"
-#include "ECSSystems/CameraSystem.h"
-#include "ECSSystems/LightSystem.h"
-#include "ECSSystems/PhysicsSystem.h"
-#include "ECSSystems/DebugGizmosSystem.h"
-#include "ECSSystems/ScriptSystem.h"
-#include "ECSSystems/TerrainSystem.h"
 #include "AssetData.h"
 #include "ECS/Coordinator.h"
 #include "MessageQueue.h"
-#include "ShaderManager.h"
-
-
+#include "ECSSystems/CameraSystem.h"
 #include <queue>
 #include <memory>
+#include <string>
+
+class RenderSystem;
+class LightSystem;
+class PhysicsSystem;
+class DebugGizmosSystem;
+class ScriptSystem;
+class TerrainSystem;
+class UISystem;
+class Scene;
+class ShaderManager;
+class Coordinator;
+class MessageQueue;
+class Message;
+class EditorContext;
 
 
 enum class EngineState {
@@ -38,7 +44,7 @@ class EditorContext;
 class EngineContext{
 public:
     EngineContext(int width, int height, const char* title);
-    
+    ~EngineContext();
     void OnEngineLoaded();
     
     Scene* GetScene(){return m_Scene;}
@@ -51,6 +57,12 @@ public:
     
     void Draw();
     void Shutdown();
+    
+    void RequestSceneChange(std::string path, bool pathIsAbsolute = false);
+    void LoadScene(std::string path);
+    void SaveScene();
+    
+    void QuitGame();
     
     void OnStartControlCam();
     void OnReleaseCamControl();
@@ -96,7 +108,9 @@ private:
     std::shared_ptr<DebugGizmosSystem> debugSystem;
     std::shared_ptr<ScriptSystem> scriptSystem;
     std::shared_ptr<TerrainSystem> terrainSystem;
+    std::shared_ptr<UISystem> uiSystem;
     
+    std::string m_PendingScenePath = "";
     
     float m_ViewportWidth, m_ViewportHeight;
     unsigned int m_ViewportFBO, m_ViewportTexture, m_ViewportRBO;
@@ -113,6 +127,7 @@ private:
     int frameCount = 0;
     int FPS = 0;
     
+    bool m_SceneChangeRequested = false;
     bool bControllingCamera = false;
     
 };

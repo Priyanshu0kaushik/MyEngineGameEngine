@@ -27,6 +27,8 @@ public:
     void SetGizmosOperation(ImGuizmo::OPERATION newGizmoOperation);
     void OnEditorLaunched();
 
+    ImVec2 GetViewportSize(){ return m_CurrentViewPortSize;}
+    ImVec2 GetViewportMousePos(){ return m_MousePos;}
 private:
     void DrawLauncher();
     void ProcessGizmosInput();
@@ -44,6 +46,8 @@ private:
     Entity m_SelectedEntity;
     Coordinator* m_Coordinator = nullptr;
     
+    ImVec2 m_CurrentViewPortSize;
+    ImVec2 m_MousePos;
     ImGuizmo::OPERATION m_CurrentGizmoOperation = ImGuizmo::TRANSLATE;
     std::vector<UIPanel*> UIPanels;
     

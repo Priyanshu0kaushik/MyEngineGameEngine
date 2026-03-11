@@ -33,6 +33,7 @@ public:
     
     static void SetActiveScenePath(std::string& path) { s_ActiveProject->m_ActiveScenePath = path; }
     static std::string GetActiveRelativeScenePath() { return s_ActiveProject->m_ActiveScenePath; }
+    static std::string GetAbsolutePath(std::string path) { return GetAssetDirectory().string()+"/"+ path;}
     static std::string GetActiveAbsoluteScenePath() { return GetAssetDirectory().string()+"/"+s_ActiveProject->m_ActiveScenePath; }
 
 

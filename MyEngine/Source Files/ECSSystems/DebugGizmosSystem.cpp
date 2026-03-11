@@ -47,7 +47,7 @@ void DebugGizmosSystem::Update(Entity selectedEntity)
     else{
         for (auto const& entity : mEntities)
         {
-            ColliderComponent* collider = m_Coordinator->GetComponent<ColliderComponent>(selectedEntity);
+            ColliderComponent* collider = m_Coordinator->GetComponent<ColliderComponent>(entity);
             if(!collider) return;
             ColliderType collisionType = collider->type;
             if(collisionType == ColliderType::Box){

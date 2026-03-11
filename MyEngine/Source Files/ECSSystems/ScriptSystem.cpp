@@ -7,12 +7,36 @@
 
 #include "ECSSystems/ScriptSystem.h"
 #include "ECS/Coordinator.h"
+#include "EngineContext.h"
 
 void ScriptSystem::Init()
 {
     m_ScriptManager = std::make_unique<ScriptManager>();
     m_ScriptManager->SetCoordinator(m_Coordinator);
+    m_ScriptManager->SetEngineContext(m_EngineContext);
     m_ScriptManager->Init();
+}
+
+void ScriptSystem::SetEngineContext(EngineContext *engineContext){
+    m_EngineContext = engineContext;
+}
+
+void ScriptSystem::ReloadAllScripts()
+{
+    m_ScriptManager->ClearCache();
+
+    for (auto const& entity : mEntities) {
+        auto* script = m_Coordinator->GetComponent<ScriptComponent>(entity);
+        script->env = m_ScriptManager->CreateEntityEnvironment(script->scriptPath);
+        
+        script->onCreate = script->env["OnCreate"];
+        script->onUpdate = script->env["OnUpdate"];
+        
+        if (script->env["OnCreate"].valid()) {
+            script->env["OnCreate"](entity);
+        }
+    }
+    std::cout << "All Scripts Reloaded Successfully!" << std::endl;
 }
 
 void ScriptSystem::Update(float deltaTime)

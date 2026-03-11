@@ -24,6 +24,8 @@ private:
     void ShowSphereColliderComponent();
     void ShowScriptComponent();
     void ShowTerrainComponent();
+    void ShowUITextComponent();
+    void ShowUIButtonComponent();
     
     void RenameRender();
     void ShowMaterialSetting(Material& material);
@@ -67,6 +69,12 @@ private:
                 }
                 else if constexpr (std::is_same_v<T, SphereColliderComponent>){
                     m_Context.coordinator->RemoveComponent<ColliderComponent>(e);
+                }
+                else if constexpr (std::is_same_v<T, UITextComponent>){
+                    m_Context.coordinator->RemoveComponent<UIBaseComponent>(e);
+                }
+                else if constexpr (std::is_same_v<T, UIBaseComponent>){
+                    m_Context.coordinator->RemoveComponent<UIBaseComponent>(e);
                 }
                 
                 

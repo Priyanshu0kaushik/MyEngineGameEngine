@@ -28,6 +28,10 @@ public:
     
     void Save();
     void Load(const std::string& filePath);
+    
+    Entity FindEntityByName(const std::string& aName);
+    glm::vec4 bgColor{0.1f, 0.1f, 0.1f, 1.0f};
+
 private:
     int NameExistCount(Entity e, const char* aName);
 

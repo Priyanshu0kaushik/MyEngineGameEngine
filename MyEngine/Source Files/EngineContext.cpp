@@ -6,6 +6,14 @@
 //
 
 #include "EngineContext.h"
+#include "ECSSystems/RenderSystem.h"
+#include "ECSSystems/LightSystem.h"
+#include "ECSSystems/PhysicsSystem.h"
+#include "ECSSystems/DebugGizmosSystem.h"
+#include "ECSSystems/ScriptSystem.h"
+#include "ECSSystems/TerrainSystem.h"
+#include "ECSSystems/UISystem.h"
+#include "ShaderManager.h"
 #include "Scene.h"
 #include "EditorContext.h"
 #include "JobSystem.h"
@@ -43,10 +51,15 @@ EngineContext::EngineContext(int width, int height, const char* title)
     m_Coordinator->RegisterComponent<SphereColliderComponent>();
     m_Coordinator->RegisterComponent<ScriptComponent>();
     m_Coordinator->RegisterComponent<TerrainComponent>();
+    m_Coordinator->RegisterComponent<UIBaseComponent>();
+    m_Coordinator->RegisterComponent<UITextComponent>();
+    m_Coordinator->RegisterComponent<UIButtonComponent>();
     
 
     SetState(EngineState::Launcher);
 }
+
+EngineContext::~EngineContext() = default;
 
 void EngineContext::OnEngineLoaded()
 {
@@ -63,6 +76,7 @@ void EngineContext::OnEngineLoaded()
     debugSystem = m_Coordinator->RegisterSystem<DebugGizmosSystem>();
     scriptSystem = m_Coordinator->RegisterSystem<ScriptSystem>();
     terrainSystem = m_Coordinator->RegisterSystem<TerrainSystem>();
+    uiSystem = m_Coordinator->RegisterSystem<UISystem>();
     
 
 
@@ -103,6 +117,7 @@ void EngineContext::OnEngineLoaded()
     scriptSignature.set(m_Coordinator->GetComponentType<ScriptComponent>());
     m_Coordinator->SetSystemSignature<ScriptSystem>(scriptSignature);
     scriptSystem->SetCoordinator(m_Coordinator);
+    scriptSystem->SetEngineContext(this);
     
     Signature terrainSignature;
     terrainSignature.set(m_Coordinator->GetComponentType<TerrainComponent>());
@@ -110,11 +125,18 @@ void EngineContext::OnEngineLoaded()
     m_Coordinator->SetSystemSignature<TerrainSystem>(terrainSignature);
     terrainSystem->SetCoordinator(m_Coordinator);
     
+    Signature uiSignature;
+    uiSignature.set(m_Coordinator->GetComponentType<TransformComponent>());
+    uiSignature.set(m_Coordinator->GetComponentType<UIBaseComponent>());
+    m_Coordinator->SetSystemSignature<UISystem>(uiSignature);
+    uiSystem->SetCoordinator(m_Coordinator);
+    
     renderSystem->Init();
     lightSystem->Init();
     physicsSystem->Init();
     debugSystem->Init();
     scriptSystem->Init();
+    uiSystem->Init();
     
     physicsSystem->SetTerrainSystem(terrainSystem);
 
@@ -125,7 +147,7 @@ void EngineContext::OnEngineLoaded()
 
     InitViewportFramebuffer(2048, 2048);
     InitShadowMap();
-
+    uiSystem->SetViewportSize(glm::vec2{m_ViewportWidth, m_ViewportHeight});
     // 4. Load the actual scene data
     OnEditMode();
     
@@ -308,7 +330,8 @@ void EngineContext::Draw(){
             glBindFramebuffer(GL_FRAMEBUFFER, m_ViewportFBO);
             
             glViewport(0, 0, m_ViewportWidth, m_ViewportHeight);
-            glClearColor(0.5f, 0.7f, 0.9f, 1.0f);
+            glm::vec4 bgColor = m_Scene->bgColor;
+            glClearColor(bgColor.r, bgColor.g, bgColor.b, bgColor.a);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             
             Shader* mainShader = m_ShaderManager->Get("Main");
@@ -331,6 +354,15 @@ void EngineContext::Draw(){
                 terrainSystem->Render(*mainShader);
                 renderSystem->Render(*mainShader);
                 lightSystem->Render(*mainShader);
+            }
+            
+            // UI Render
+            Shader* uiShader = m_ShaderManager->Get("UIShader");
+            Shader* textShader = m_ShaderManager->Get("TextShader");
+            
+            if(uiShader && textShader)
+            {
+                uiSystem->Render(*uiShader, *textShader);
             }
 
             if(bControllingCamera) cameraSystem->ProcessInput(m_Window, m_DeltaTime);
@@ -358,6 +390,25 @@ void EngineContext::Draw(){
             if(m_State == EngineState::Play){
                 physicsSystem->Update(m_DeltaTime);
                 scriptSystem->Update(m_DeltaTime);
+                ImGuiIO& io = ImGui::GetIO();
+
+                float mouseX = io.MousePos.x;
+                float mouseY = io.MousePos.y;
+
+                ImVec2 viewportMin = m_EditorContext->GetViewportMousePos();
+                ImVec2 viewportSize = m_EditorContext->GetViewportSize();
+
+                float localMouseX = mouseX - viewportMin.x;
+                float localMouseY = mouseY - viewportMin.y;
+
+                float finalMouseX = (localMouseX / viewportSize.x) * m_ViewportWidth;
+                float finalMouseY = (1.0f - (localMouseY / viewportSize.y)) * m_ViewportHeight;
+
+                glm::vec2 correctedMousePos = glm::vec2(finalMouseX, finalMouseY);
+
+                bool mouseClicked = ImGui::IsMouseClicked(ImGuiMouseButton_Left);
+                uiSystem->Update(m_DeltaTime, correctedMousePos, mouseClicked);
+                
             }
             
             //Unbinding
@@ -365,8 +416,20 @@ void EngineContext::Draw(){
             
             // Editor UI
             m_EditorContext->RenderEditor();
+            
+            
+            if (InputManager::Get().IsKeyPressed(GLFW_KEY_LEFT_ALT)) {
+                std::cout<<"Reloading Scripts...\n";
+                scriptSystem->ReloadAllScripts();
+            }
         }
         
+        if (m_SceneChangeRequested) {
+            this->LoadScene(m_PendingScenePath);
+            m_SceneChangeRequested = false;
+            m_PendingScenePath = "";
+            continue;
+        }
         glfwSwapBuffers(m_Window);
         glfwPollEvents();
     }
@@ -406,7 +469,8 @@ void EngineContext::SetState(EngineState newState)
     if(m_State == EngineState::Edit && newState == EngineState::Play)
     {
         std::cout << "Saving scene before play..." << std::endl;
-        GetScene()->Save();
+        SaveScene();
+        cameraSystem->OnPlayMode();
     }
 
     // 2. Returning to EDIT mode: Reset everything by loading the saved state
@@ -422,12 +486,37 @@ void EngineContext::OnEditMode()
 {
     std::string startScenePath = Project::GetActiveAbsoluteScenePath();
     if (!startScenePath.empty()) {
-        m_Scene->Load(startScenePath);
-        cameraSystem->Init();
-
+        RequestSceneChange(startScenePath, true);
     }
 }
 
+void EngineContext::SaveScene()
+{
+    m_Scene->Save();
+}
+
+void EngineContext::RequestSceneChange(std::string path, bool pathIsAbsolute)
+{
+    if(!pathIsAbsolute)
+    {
+        Project::SetActiveScenePath(path);
+        m_PendingScenePath = Project::GetAbsolutePath(path);
+    }
+    else m_PendingScenePath = path;
+    
+    m_SceneChangeRequested = true;
+}
+
+void EngineContext::QuitGame()
+{
+    SetState(EngineState::Edit);
+}
+
+void EngineContext::LoadScene(std::string path)
+{
+    m_Scene->Load(path);
+    cameraSystem->Init();
+}
 void EngineContext::Shutdown(){
     m_EditorContext->EndFrame();
     AssetManager::Get().CleanUp();

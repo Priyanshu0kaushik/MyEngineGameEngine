@@ -40,14 +40,18 @@ void PhysicsSystem::Update(float deltaTime)
 
         glm::vec3 nextPos = trans->position + (rb->velocity * deltaTime);
 
-        // 4. terrain collision (for now we can only have one terrain)
+        // 3. terrain collision (for now we can only have one terrain)
         Entity terrainEntity = m_TerrainSystem->GetTerrainEntity();
         if (terrainEntity != UINT32_MAX) {
             float groundHeight = m_TerrainSystem->GetHeightAt(terrainEntity, nextPos.x, nextPos.z);
             
             float colliderOffset = 0.0f;
             if(auto* box = m_Coordinator->GetComponent<BoxColliderComponent>(entity)) {
-                colliderOffset = box->extents.y;
+                colliderOffset = box->extents.y * trans->scale.y;
+            }
+            else if(auto* sphere = m_Coordinator->GetComponent<SphereColliderComponent>(entity)) {
+                float maxS = std::max({trans->scale.x, trans->scale.y, trans->scale.z});
+                colliderOffset = sphere->radius * maxS;
             }
 
             if (nextPos.y - colliderOffset <= groundHeight + 0.001f)
@@ -95,19 +99,19 @@ void PhysicsSystem::Update(float deltaTime)
                 // Dispatch to specific Narrowphase algorithms
                 if (typeA == ColliderType::Box && typeB == ColliderType::Box)
                 {
-                    if(CheckBoxBoxCollision(*itA, *itB)) std::cout<<"Box Collided with Box\n";
+                    if(CheckBoxBoxCollision(*itA, *itB)) CallLuaCollision(*itA, *itB);
                 }
                 else if (typeA == ColliderType::Sphere && typeB == ColliderType::Sphere)
                 {
-                    if(CheckSphereSphereCollision(*itA, *itB)) std::cout<<"Sphere Collided with Sphere\n";
+                    if(CheckSphereSphereCollision(*itA, *itB)) CallLuaCollision(*itA, *itB);;
                 }
                 else if (typeA == ColliderType::Sphere && typeB == ColliderType::Box)
                 {
-                    if(CheckSphereBoxCollision(*itA, *itB)) std::cout<<"Sphere Collided with Box\n";
+                    if(CheckSphereBoxCollision(*itA, *itB)) CallLuaCollision(*itA, *itB);;
                 }
                 else if (typeA == ColliderType::Box && typeB == ColliderType::Sphere)
                 {
-                    if(CheckSphereBoxCollision(*itB, *itA)) std::cout<<"Box Collided with Sphere\n";
+                    if(CheckSphereBoxCollision(*itB, *itA)) CallLuaCollision(*itA, *itB);;
                 }
             }
         }
@@ -292,22 +296,21 @@ bool PhysicsSystem::CheckBoxBoxCollision(Entity entityA, Entity entityB) {
             float slop = 0.01f;
              
             glm::vec3 push = collisionNormal * (std::max(minOverlap - slop, 0.0f) / totalInvMass) * percent;
-             
+
             if (invMassA > 0) transformA->SetPosition(transformA->position - push * invMassA);
             if (invMassB > 0) transformB->SetPosition(transformB->position + push * invMassB);
         }
          
         // Reflection (Bouncing)
         if (rbA && !rbA->isStatic && !rbA->isKinematic) {
-            float velAlongNormal = glm::dot(rbA->velocity, collisionNormal);
-            // Only reflect if moving towards the collider
-            if (velAlongNormal > 0) {
-                rbA->velocity = glm::reflect(rbA->velocity, collisionNormal) * colA->bounciness;
+            glm::vec3 relVel = rbA->velocity;
+            float velAlongNormal = glm::dot(relVel, collisionNormal);
+
+            if (velAlongNormal < 0) {
+                float e = colA->bounciness;
+                rbA->velocity = glm::reflect(rbA->velocity, collisionNormal) * e;
             }
         }
-        if (rbA && !rbA->isStatic && !rbA->isKinematic)
-            rbA->velocity = glm::reflect(rbA->velocity, collisionNormal) * colA->bounciness;
-         
         colA->isColliding = true;
         colB->isColliding = true;
         return true;
@@ -360,11 +363,17 @@ bool PhysicsSystem::CheckSphereBoxCollision(Entity sphereEnt, Entity boxEnt) {
     glm::vec3 sphereCenterWorld = glm::vec3(sphereCol->worldTransform[3]);
     glm::vec3 localSphereCenter = glm::vec3(boxInv * glm::vec4(sphereCenterWorld, 1.0f));
     
+    auto* boxTransform = m_Coordinator->GetComponent<TransformComponent>(boxEnt);
+    glm::vec3 worldScale = boxTransform->scale;
+
+    // Scaled extents
+    glm::vec3 scaledExtents = boxData->extents * worldScale;
+    
     // Find closest point on the Box to the Sphere center (Clamp)
     glm::vec3 closestPoint;
-    closestPoint.x = glm::clamp(localSphereCenter.x, -boxData->extents.x, boxData->extents.x);
-    closestPoint.y = glm::clamp(localSphereCenter.y, -boxData->extents.y, boxData->extents.y);
-    closestPoint.z = glm::clamp(localSphereCenter.z, -boxData->extents.z, boxData->extents.z);
+    closestPoint.x = glm::clamp(localSphereCenter.x, -scaledExtents.x, scaledExtents.x);
+    closestPoint.y = glm::clamp(localSphereCenter.y, -scaledExtents.y, scaledExtents.y);
+    closestPoint.z = glm::clamp(localSphereCenter.z, -scaledExtents.z, scaledExtents.z);
     
     // Check distance
     float distance = glm::distance(localSphereCenter, closestPoint);
@@ -380,12 +389,21 @@ bool PhysicsSystem::CheckSphereBoxCollision(Entity sphereEnt, Entity boxEnt) {
          
         
         auto* sphereTransform = m_Coordinator->GetComponent<TransformComponent>(sphereEnt);
-        sphereTransform->SetPosition(sphereTransform->position + worldNormal * overlap);
+        auto* rb = m_Coordinator->GetComponent<RigidBodyComponent>(sphereEnt);
          
         // Bounce
-        auto* rb = m_Coordinator->GetComponent<RigidBodyComponent>(sphereEnt);
+        sphereTransform->SetPosition(sphereTransform->position + (worldNormal * overlap * 1.1f));
+
         if(rb && !rb->isKinematic) {
-            rb->velocity = glm::reflect(rb->velocity, worldNormal) * sphereCol->bounciness;
+            float velAlongNormal = glm::dot(rb->velocity, worldNormal);
+            
+            if (velAlongNormal < 0)
+            {
+                rb->velocity -= worldNormal * velAlongNormal;
+                if (sphereCol->bounciness > 0.1f) {
+                    rb->velocity += worldNormal * (-velAlongNormal * sphereCol->bounciness);
+                }
+            }
         }
          
         sphereCol->isColliding = true;
@@ -407,4 +425,17 @@ glm::mat4 PhysicsSystem::GetWorldMatrix(const TransformComponent* transform) {
 
     model = glm::scale(model, transform->scale);
     return model;
+}
+
+void PhysicsSystem::CallLuaCollision(Entity a, Entity b) {
+    auto* scriptA = m_Coordinator->GetComponent<ScriptComponent>(a);
+    auto* scriptB = m_Coordinator->GetComponent<ScriptComponent>(b);
+
+    if (scriptA && scriptA->env["OnCollision"].valid()) {
+        scriptA->env["OnCollision"](a, b);
+    }
+
+    if (scriptB && scriptB->env["OnCollision"].valid()) {
+        scriptB->env["OnCollision"](b, a);
+    }
 }

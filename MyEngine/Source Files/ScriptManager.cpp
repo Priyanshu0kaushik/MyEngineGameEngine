@@ -6,9 +6,10 @@
 //
 
 #include "ScriptManager.h"
+#include "EngineContext.h"
+#include "Scene.h"
 #include "InputManager.h"
-#include "ECS/Coordinator.h"
-#include "Components.h"
+#include "Project.h"
 #include <glm/glm.hpp>
 
 void ScriptManager::Init()
@@ -20,6 +21,18 @@ void ScriptManager::Init()
     
     m_Lua.set_function("IsKeyPressed", [](int keyCode) {
         return InputManager::Get().IsKeyPressed(keyCode);
+    });
+    
+    m_Lua.set_function("LoadScene", [this](std::string scenePath) {
+        m_EngineContext->RequestSceneChange(scenePath);
+    });
+    
+    m_Lua.set_function("QuitGame", [this]() {
+        m_EngineContext->QuitGame();
+    });
+    
+    m_Lua.set_function("FindEntityByName", [this](std::string Name){
+        return m_EngineContext->GetScene()->FindEntityByName(Name);
     });
     
     m_Lua.new_enum("LightType",
@@ -71,6 +84,18 @@ void ScriptManager::Init()
         "isKinematic", &RigidBodyComponent::isKinematic,
         "AddForce", &RigidBodyComponent::AddForce
     );
+    
+    m_Lua.new_usertype<UITextComponent>("UITextComponent",
+        "text", &UITextComponent::text,
+        "color", &UITextComponent::color
+    );
+    
+    m_Lua.new_usertype<UIBaseComponent>("UIBase",
+        "position", &UIBaseComponent::position,
+        "zOrder", &UIBaseComponent::zOrder,
+        "isVisible", &UIBaseComponent::isVisible  
+    );
+    
 
     m_Lua.new_usertype<CameraComponent>("Camera",
         "fov", &CameraComponent::Fov,
@@ -98,10 +123,22 @@ void ScriptManager::Init()
     m_Lua.set_function("GetCamera", [&](Entity entity) {
         return m_Coordinator->GetComponent<CameraComponent>(entity);
     });
+    
+    m_Lua.set_function("GetUIBase", [&](Entity entity) {
+        return m_Coordinator->GetComponent<UIBaseComponent>(entity);
+    });
+    
+    m_Lua.set_function("GetTextUI", [&](Entity entity) {
+        return m_Coordinator->GetComponent<UITextComponent>(entity);
+    });
 }
 
 void ScriptManager::SetCoordinator(Coordinator *aCoordinator){
     m_Coordinator = aCoordinator;
+}
+
+void ScriptManager::SetEngineContext(EngineContext *aEngineContext){
+    m_EngineContext = aEngineContext;
 }
 
 sol::environment ScriptManager::CreateEntityEnvironment(const std::string &scriptPath)

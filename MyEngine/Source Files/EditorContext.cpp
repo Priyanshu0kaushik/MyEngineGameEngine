@@ -194,12 +194,12 @@ void EditorContext::ShowViewport(){
 
     ViewportToolbar();
 
-    ImVec2 viewportMin = ImGui::GetCursorScreenPos();
-    ImVec2 viewportSize = ImGui::GetContentRegionAvail();
+    m_MousePos = ImGui::GetCursorScreenPos();
+    m_CurrentViewPortSize = ImGui::GetContentRegionAvail();
 
     // RENDER Viewport:
     // Takes the OpenGL Texture ID and draws it as an Image.
-    ImGui::Image((void*)(intptr_t)m_EngineContext->GetViewportTexture(), viewportSize, ImVec2(0,1), ImVec2(1,0));
+    ImGui::Image((void*)(intptr_t)m_EngineContext->GetViewportTexture(), m_CurrentViewPortSize, ImVec2(0,1), ImVec2(1,0));
 
     if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
         ImGui::SetWindowFocus();
@@ -207,7 +207,7 @@ void EditorContext::ShowViewport(){
     
     // Draw Gizmos and Control Camera In Edit Mode Only
     if(m_EngineContext->GetState() == EngineState::Edit){
-        DrawGizmos(viewportMin, viewportSize);
+        DrawGizmos(m_MousePos, m_CurrentViewPortSize);
         if (!bCameraCapturing) ProcessGizmosInput();
         
         bool viewportFocused = ImGui::IsWindowHovered();

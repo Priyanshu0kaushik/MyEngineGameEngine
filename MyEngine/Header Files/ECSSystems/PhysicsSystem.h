@@ -26,6 +26,7 @@ private:
     bool CheckBoxBoxCollision(Entity entityA, Entity entityB);
     bool CheckSphereBoxCollision(Entity sphereEnt, Entity boxEnt);
     void ProjectBox(const ColliderComponent* col, const BoxColliderComponent* box, const glm::vec3& axis, float& min, float& max);
+    void CallLuaCollision(Entity a, Entity b);
 private:
     
     std::shared_ptr<TerrainSystem> m_TerrainSystem;

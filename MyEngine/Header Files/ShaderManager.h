@@ -16,6 +16,8 @@ public:
         AddShader("Main", "Shaders/VertexShader.glsl", "Shaders/FragmentShader.glsl");
         AddShader("ShadowMap", "Shaders/ShadowDepthVertexShader.glsl", "Shaders/ShadowDepthFragmentShader.glsl");
         AddShader("DebugShader", "Shaders/DebugGizmosVertexShader.glsl", "Shaders/DebugGizmosFragmentShader.glsl");
+        AddShader("TextShader", "Shaders/UITextVertexShader.glsl", "Shaders/TextFragmentShader.glsl");
+        AddShader("UIShader", "Shaders/UITextVertexShader.glsl", "Shaders/UIFragmentShader.glsl");
     }
 
     void AddShader(const std::string& name, const char* vPath, const char* fPath) {

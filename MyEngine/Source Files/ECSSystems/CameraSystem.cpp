@@ -51,8 +51,11 @@ glm::mat4 CameraSystem::GetView() const{
     if(m_MainCam==UINT32_MAX) return glm::mat4();
     TransformComponent* transform = m_Coordinator->GetComponent<TransformComponent>(m_MainCam);
     CameraComponent* camera = m_Coordinator->GetComponent<CameraComponent>(m_MainCam);
-    if(!camera || !transform) return glm::mat4();
-    return glm::lookAt(transform->position, transform->position + camera->Front, camera->Up);
+    if(!camera || !transform) return glm::mat4(1.0f);
+    glm::vec3 forward = transform->GetForward();
+    glm::vec3 up = transform->GetUp();
+    
+    return glm::lookAt(transform->position, transform->position + forward, up);
 }
 
 glm::mat4 CameraSystem::GetCameraProjection() const{
@@ -75,24 +78,22 @@ void CameraSystem::ProcessKeyboardInput(GLFWwindow* aWindow ,float aDeltaTime){
     if(!camera || !transform) return;
     
     const float cameraSpeed = m_CurrentCameraSpeed * aDeltaTime;
-    if (glfwGetKey(aWindow, GLFW_KEY_W) == GLFW_PRESS)
-        transform->position += cameraSpeed * camera->Front;
-    if (glfwGetKey(aWindow, GLFW_KEY_S) == GLFW_PRESS)
-        transform->position -= cameraSpeed * camera->Front;
-    if (glfwGetKey(aWindow, GLFW_KEY_A) == GLFW_PRESS)
-        transform->position -= glm::normalize(glm::cross(camera->Front, camera->Up)) * cameraSpeed;
-    if (glfwGetKey(aWindow, GLFW_KEY_D) == GLFW_PRESS)
-        transform->position += glm::normalize(glm::cross(camera->Front, camera->Up)) * cameraSpeed;
-    if (glfwGetKey(aWindow, GLFW_KEY_E) == GLFW_PRESS)
-        transform->position += camera->Up * cameraSpeed;
-    if (glfwGetKey(aWindow, GLFW_KEY_Q) == GLFW_PRESS)
-        transform->position -= camera->Up * cameraSpeed;
+    glm::vec3 forward = transform->GetForward();
+    glm::vec3 right = transform->GetRight();
+
+    if (glfwGetKey(aWindow, GLFW_KEY_W) == GLFW_PRESS) transform->position += forward * cameraSpeed;
+    if (glfwGetKey(aWindow, GLFW_KEY_S) == GLFW_PRESS) transform->position -= forward * cameraSpeed;
+    if (glfwGetKey(aWindow, GLFW_KEY_A) == GLFW_PRESS) transform->position -= right * cameraSpeed;
+    if (glfwGetKey(aWindow, GLFW_KEY_D) == GLFW_PRESS) transform->position += right * cameraSpeed;
+    if (glfwGetKey(aWindow, GLFW_KEY_E) == GLFW_PRESS) transform->position += camera->Up * cameraSpeed;
+    if (glfwGetKey(aWindow, GLFW_KEY_Q) == GLFW_PRESS) transform->position -= camera->Up * cameraSpeed;
 }
 
 void CameraSystem::ProcessMouseInput(GLFWwindow* aWindow, float aDeltaTime)
 {
+    TransformComponent* transform = m_Coordinator->GetComponent<TransformComponent>(m_MainCam);
     CameraComponent* camera = m_Coordinator->GetComponent<CameraComponent>(m_MainCam);
-    if(!camera) return;
+    if (!camera || !transform) return;
     
     static double lastX = 0.0, lastY = 0.0;
 
@@ -115,16 +116,14 @@ void CameraSystem::ProcessMouseInput(GLFWwindow* aWindow, float aDeltaTime)
     xoffset *= sensitivity;
     yoffset *= sensitivity;
 
-    camera->Yaw   += xoffset;
-    camera->Pitch += yoffset;
+    glm::vec3 rot = transform->rotation;
+    rot.y += xoffset; // Yaw
+    rot.x += yoffset; // Pitch
 
-    if (camera->Pitch > 89.0f) camera->Pitch = 89.0f;
-    if (camera->Pitch < -89.0f) camera->Pitch = -89.0f;
+    if (rot.x > 89.0f) rot.x = 89.0f;
+    if (rot.x < -89.0f) rot.x = -89.0f;
 
-    camera->Front.x = cos(glm::radians(camera->Yaw)) * cos(glm::radians(camera->Pitch));
-    camera->Front.y = sin(glm::radians(camera->Pitch));
-    camera->Front.z = sin(glm::radians(camera->Yaw)) * cos(glm::radians(camera->Pitch));
-    camera->Front = glm::normalize(camera->Front);
+    transform->SetRotation(rot);
 }
 
 void CameraSystem::OnReleaseCamControl(){

@@ -10,18 +10,25 @@
 #include <unordered_map>
 
 class Coordinator;
+class EngineContext;
 
 class ScriptManager {
 public:
     void Init();
+    
+    void ClearCache() {
+        m_CompiledScripts.clear();
+    }
     
     sol::environment CreateEntityEnvironment(const std::string& scriptPath);
     
     sol::state& GetLuaState() { return m_Lua; }
     
     void SetCoordinator(Coordinator* aCoordinator);
+    void SetEngineContext(EngineContext* aEngineContext);
 private:
     Coordinator* m_Coordinator;
+    EngineContext* m_EngineContext;
     sol::state m_Lua;
     std::unordered_map<std::string, sol::protected_function> m_CompiledScripts;
 };

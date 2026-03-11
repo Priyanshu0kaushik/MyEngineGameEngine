@@ -10,6 +10,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include "Scene.h"
 #include "ShaderManager.h"
+#include "Project.h"
 #include <filesystem>
 #include <algorithm>
 
@@ -26,26 +27,28 @@ void InspectorPanel::Draw(EditorDrawContext &context)
     if (context.coordinator->DoesEntityExist(*context.selectedEntity))
     {
         ShowNameComponent();
-        ImGui::Spacing();
         ShowTransformComponent();
-        ImGui::Spacing();
         ShowCameraComponent();
-        ImGui::Spacing();
         ShowMeshComponent();
-        ImGui::Spacing();
         ShowRigidBodyComponent();
-        ImGui::Spacing();
         ShowBoxColliderComponent();
-        ImGui::Spacing();
         ShowSphereColliderComponent();
-        ImGui::Spacing();
         ShowLightComponent();
-        ImGui::Spacing();
         ShowScriptComponent();
-        ImGui::Spacing();
         ShowTerrainComponent();
+        ShowUITextComponent();
+        ShowUIButtonComponent();
         
-        
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        glm::vec4 bgColor = m_Context.engine->GetScene()->bgColor;
+        ImGui::Text("Scene BG Color");
+        if(ImGui::ColorEdit4("###SceneBgColor", &bgColor.x))
+        {
+            m_Context.engine->GetScene()->bgColor = bgColor;
+        }
         ImGui::Spacing();
         ImGui::Separator();
         ImGui::Spacing();
@@ -85,18 +88,24 @@ void InspectorPanel::ShowAddComponentsList()
 
         for (std::string name : m_Context.coordinator->GetComponentNames())
         {
-            if(name == "Collider Component") continue;
+            if(name == "Collider Component" || name == "UI Base Component") continue;
             if (strstr(name.c_str(), search)!=nullptr)
             {
                 if (ImGui::Selectable(name.c_str()))
                 {
-                    if(name == "Box Collider") {
+                    if(name == "Box Collider")
+                    {
                         m_Context.coordinator->AddComponentByName(*m_Context.selectedEntity, "Collider Component");
                         m_Context.coordinator->GetComponent<ColliderComponent>(*m_Context.selectedEntity)->type = ColliderType::Box;
                     }
-                    else if(name == "Sphere Collider") {
+                    else if(name == "Sphere Collider")
+                    {
                         m_Context.coordinator->AddComponentByName(*m_Context.selectedEntity, "Collider Component");
                         m_Context.coordinator->GetComponent<ColliderComponent>(*m_Context.selectedEntity)->type = ColliderType::Sphere;
+                    }
+                    else if(name == "Text Component" || name == "Button Component")
+                    {
+                        m_Context.coordinator->AddComponentByName(*m_Context.selectedEntity, "UI Base Component");
                     }
                     m_Context.coordinator->AddComponentByName(*m_Context.selectedEntity, name.c_str());
                     ImGui::CloseCurrentPopup();
@@ -114,6 +123,7 @@ void InspectorPanel::ShowNameComponent()
     ImGui::Text("Name");
     RenameRender();
     ImGui::Separator();
+    ImGui::Spacing();
 
 }
 void InspectorPanel::ShowTransformComponent()
@@ -140,9 +150,9 @@ void InspectorPanel::ShowTransformComponent()
         if (ImGui::DragFloat3("###Scale", &scale.x, 0.1f, 0.01f, 10.0f)){
             tc->SetScale(scale);
         }
-        ImGui::Spacing();
     }
-
+    ImGui::Separator();
+    ImGui::Spacing();
 }
 
 void InspectorPanel::ShowTerrainComponent()
@@ -194,6 +204,8 @@ void InspectorPanel::ShowTerrainComponent()
         RemoveComponentButton<TerrainComponent>();
         ImGui::Separator();
     }
+    ImGui::Spacing();
+
     
 }
 
@@ -231,6 +243,7 @@ void InspectorPanel::ShowLightComponent()
     }
     RemoveComponentButton<LightComponent>();
     ImGui::Separator();
+    ImGui::Spacing();
 
 }
 
@@ -267,6 +280,8 @@ void InspectorPanel::ShowMeshComponent()
         RemoveComponentButton<MeshComponent>();
         ImGui::Separator();
     }
+    ImGui::Spacing();
+
     
 }
 
@@ -306,7 +321,6 @@ void InspectorPanel::ShowScriptComponent()
             ImGui::EndDragDropTarget();
             
         }
-        
 
         ImGui::PopStyleVar();
         ImGui::PopStyleColor();
@@ -316,7 +330,75 @@ void InspectorPanel::ShowScriptComponent()
         RemoveComponentButton<ScriptComponent>();
         ImGui::Separator();
     }
+    ImGui::Spacing();
 
+
+}
+
+void InspectorPanel::ShowUITextComponent()
+{
+    UIBaseComponent* baseUI = m_Context.coordinator->GetComponent<UIBaseComponent>(*m_Context.selectedEntity);
+    UITextComponent* textUI = m_Context.coordinator->GetComponent<UITextComponent>(*m_Context.selectedEntity);
+    
+    if(!baseUI || !textUI) return;
+    
+    if (ImGui::CollapsingHeader("Text Component", ImGuiTreeNodeFlags_DefaultOpen))
+    {
+        ImGui::DragFloat2("Position", &baseUI->position.x);
+        ImGui::DragFloat("Scale", &textUI->scale);
+        char buffer[128];
+
+        strcpy(buffer, textUI->text.c_str());
+        bool enterPressed =
+            ImGui::InputText(
+                "Text",
+                 buffer,
+                IM_ARRAYSIZE(buffer),
+                ImGuiInputTextFlags_EnterReturnsTrue
+            );
+        if (enterPressed || ImGui::IsItemDeactivatedAfterEdit())
+        {
+            textUI->text = buffer;
+        }
+        ImGui::ColorEdit3("Color", &textUI->color.x);
+        
+        ImGui::DragInt("ZIndex", &baseUI->zOrder);
+        ImGui::Checkbox("Visible", &baseUI->isVisible);
+        
+        ImGui::Spacing();
+        RemoveComponentButton<UITextComponent>();
+        ImGui::Separator();
+    }
+    ImGui::Spacing();
+    
+}
+
+void InspectorPanel::ShowUIButtonComponent()
+{
+    UIBaseComponent* baseUI = m_Context.coordinator->GetComponent<UIBaseComponent>(*m_Context.selectedEntity);
+    UIButtonComponent* buttonUI = m_Context.coordinator->GetComponent<UIButtonComponent>(*m_Context.selectedEntity);
+    
+    if(!baseUI || !buttonUI) return;
+    
+    if (ImGui::CollapsingHeader("Button Component", ImGuiTreeNodeFlags_DefaultOpen))
+    {
+        ImGui::DragFloat2("Position", &baseUI->position.x);
+        
+        ImGui::DragFloat2("Size", &buttonUI->size.x);
+        
+        ImGui::ColorEdit3("Normal Color", &buttonUI->normalColor.x);
+        ImGui::ColorEdit3("Hover Color", &buttonUI->hoverColor.x);
+        ImGui::ColorEdit3("Pressed Color", &buttonUI->clickColor.x);
+        
+        ImGui::DragInt("ZIndex", &baseUI->zOrder);
+        ImGui::Checkbox("Visible", &baseUI->isVisible);
+        
+        ImGui::Spacing();
+        RemoveComponentButton<UIButtonComponent>();
+        ImGui::Separator();
+    }
+    ImGui::Spacing();
+    
 }
 
 void InspectorPanel::ShowCameraComponent()
@@ -347,6 +429,8 @@ void InspectorPanel::ShowCameraComponent()
     ImGui::Spacing();
     RemoveComponentButton<CameraComponent>();
     ImGui::Separator();
+    ImGui::Spacing();
+
     
 }
 
@@ -366,6 +450,8 @@ void InspectorPanel::ShowRigidBodyComponent()
         RemoveComponentButton<RigidBodyComponent>();
         ImGui::Separator();
     }
+    ImGui::Spacing();
+
 }
 
 void InspectorPanel::ShowBoxColliderComponent()
@@ -389,6 +475,8 @@ void InspectorPanel::ShowBoxColliderComponent()
         RemoveComponentButton<BoxColliderComponent>();
         ImGui::Separator();
     }
+    ImGui::Spacing();
+
 }
 void InspectorPanel::ShowSphereColliderComponent()
 {
@@ -411,6 +499,8 @@ void InspectorPanel::ShowSphereColliderComponent()
         RemoveComponentButton<SphereColliderComponent>();
         ImGui::Separator();
     }
+    ImGui::Spacing();
+
 }
 
 void InspectorPanel::ShowMaterialSetting(Material& material)
@@ -519,7 +609,6 @@ bool InspectorPanel::UpdateAssetSlot(std::string &path, uint32_t &id)
 
 void InspectorPanel::RenameRender()
 {
-
     NameComponent* nc = m_Context.coordinator->GetComponent<NameComponent>(*m_Context.selectedEntity);
     if(nc){
         char buffer[128];
