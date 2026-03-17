@@ -88,7 +88,7 @@ private:
     void InitShadowMap();
     void OnEditMode();
     void ProcessMessages();
-    void SendMessage(std::unique_ptr<Message> msg);
+    void SendMessageToAssetManager(std::unique_ptr<Message> msg);
     void InitWindow(int width, int height, const char* title);
     void Cleanup();
 private:

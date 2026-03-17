@@ -11,6 +11,8 @@
 #include "InputManager.h"
 #include "Project.h"
 #include <glm/glm.hpp>
+#include <fstream>
+#include <sstream>
 
 void ScriptManager::Init()
 {
@@ -35,6 +37,10 @@ void ScriptManager::Init()
         return m_EngineContext->GetScene()->FindEntityByName(Name);
     });
     
+    m_Lua.set_function("DestroyEntity", [this](Entity entity){
+        return m_EngineContext->DeleteEntity(entity);
+    });
+
     m_Lua.new_enum("LightType",
         "Directional", LightType::Directional,
         "Point", LightType::Point,
@@ -130,6 +136,23 @@ void ScriptManager::Init()
     
     m_Lua.set_function("GetTextUI", [&](Entity entity) {
         return m_Coordinator->GetComponent<UITextComponent>(entity);
+    });
+    
+    m_Lua.set_function("ReadFile", [](std::string path) {
+        std::ifstream file(path);
+        if (!file.is_open()) return std::string("");
+        
+        std::stringstream buffer;
+        buffer << file.rdbuf();
+        return buffer.str();
+    });
+
+    m_Lua.set_function("AppendFile", [](std::string path, std::string content) {
+        std::ofstream file(path, std::ios_base::app);
+        if (file.is_open()) {
+            file << content;
+            file.close();
+        }
     });
 }
 

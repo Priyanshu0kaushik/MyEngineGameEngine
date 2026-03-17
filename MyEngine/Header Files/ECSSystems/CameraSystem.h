@@ -11,6 +11,8 @@
 #include "ECS/Coordinator.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#define GLFW_INCLUDE_NONE
+#include <GLFW/glfw3.h>
 
 class GLFWwindow;
 class CameraSystem : public ECSSystem{

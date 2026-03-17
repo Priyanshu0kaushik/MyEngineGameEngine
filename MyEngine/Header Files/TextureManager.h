@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <vector>
 #include <map>
+#include <unordered_map>
 #include "MessageQueue.h"
 #include "AssetData.h"
 

@@ -8,6 +8,9 @@
 #pragma once
 #include "ECS.h"
 #include <iostream>
+#include <array>       
+#include <unordered_map>
+#include <cstddef>
 
 class IComponentArray
 {

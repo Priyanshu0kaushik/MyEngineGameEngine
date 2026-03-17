@@ -6,9 +6,9 @@
 //
 
 #include "ECSSystems/CameraSystem.h"
-#include "GLAD/include/glad/glad.h"
 #include "ECS/Coordinator.h"
-#include "glfw3.h"
+#include <glad/glad.h>
+#include <GLFW/glfw3.h>
 
 void CameraSystem::Init()
 {
@@ -31,10 +31,23 @@ void CameraSystem::Update()
 
 void CameraSystem::OnPlayMode()
 {
-    for(auto Entity: mEntities)
+    bool foundPlayerCam = false;
+
+    for(auto const& entity : mEntities)
     {
-        CameraComponent* camComp = m_Coordinator->GetComponent<CameraComponent>(Entity);
-        if(camComp->IsPrimary) m_MainCam = Entity;
+        CameraComponent* camComp = m_Coordinator->GetComponent<CameraComponent>(entity);
+        NameComponent* nameComp = m_Coordinator->GetComponent<NameComponent>(entity);
+
+        if(camComp && camComp->IsPrimary) {
+            m_MainCam = entity;
+            foundPlayerCam = true;
+            std::cout << "Switching to Player Camera: " << nameComp->Name << std::endl;
+            break;
+        }
+    }
+
+    if(!foundPlayerCam) {
+        std::cout << "No Camera found. Using Editor Cam." << std::endl;
     }
 }
 

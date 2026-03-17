@@ -7,6 +7,7 @@
 #pragma once
 #include "ECSSystem.h"
 #include <map>
+#include <unordered_map>
 
 class ECSSystemManager
 {

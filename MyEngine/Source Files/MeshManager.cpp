@@ -9,9 +9,12 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#ifdef __APPLE__
 #include <sys/sysctl.h>
 #include <mach/mach.h>
+#endif
 #include "GLAD/include/glad/glad.h"
+#include <filesystem>
 
 
 MeshManager::MeshManager()
@@ -218,6 +221,7 @@ void MeshManager::TriangulateFace(const std::vector<uint32_t> &polygonIndices, s
 // DEBUG UTILS
 // Prints current RAM usage to track memory leaks. (Rn for Mac- will be removed)
 
+#ifdef __APPLE__
 void MeshManager::PrintMemory()
 {
     int mib [] = { CTL_HW, HW_MEMSIZE };
@@ -258,6 +262,11 @@ void MeshManager::PrintMemory()
               << usedMem / (1024 * 1024)
               << " MB\n";
 }
+#else
+void MeshManager::PrintMemory(){
+    
+}
+#endif
 
 // BINARY SERIALIZATION
 bool MeshManager::SaveMeshBinary(const std::string &path, const Mesh &mesh)

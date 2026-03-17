@@ -8,6 +8,7 @@
 #pragma once
 #include "ECS.h"
 #include <queue>
+#include <array>
 
 class EntityManager
 {

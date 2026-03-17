@@ -302,6 +302,7 @@ void EngineContext::Draw(){
         }
         else
         {
+            if(m_SceneChangeRequested) break;
             // Normal Editor Logic (After project is loaded)
             ProcessMessages();
             m_Scene->SyncLoadedAssets();
@@ -451,7 +452,7 @@ void EngineContext::DeleteEntity(Entity aEntity){
     if(m_Scene) m_Scene->RemoveEntity(aEntity);
 }
 
-void EngineContext::SendMessage(std::unique_ptr<Message> msg)
+void EngineContext::SendMessageToAssetManager(std::unique_ptr<Message> msg)
 {
     AssetManager::Get().ProcessMessage(msg.get());
 }
@@ -459,7 +460,7 @@ void EngineContext::SendMessage(std::unique_ptr<Message> msg)
 void EngineContext::ProcessMessages(){
     auto msg = m_MessageQueue->Pop();
     while(msg!=nullptr){
-        SendMessage(std::move(msg));
+        SendMessageToAssetManager(std::move(msg));
     }
 }
 
@@ -471,6 +472,7 @@ void EngineContext::SetState(EngineState newState)
         std::cout << "Saving scene before play..." << std::endl;
         SaveScene();
         cameraSystem->OnPlayMode();
+        physicsSystem->OnPlayMode();
     }
 
     // 2. Returning to EDIT mode: Reset everything by loading the saved state
@@ -515,7 +517,11 @@ void EngineContext::QuitGame()
 void EngineContext::LoadScene(std::string path)
 {
     m_Scene->Load(path);
-    cameraSystem->Init();
+    if(m_State == EngineState::Play){
+        cameraSystem->OnPlayMode();
+        physicsSystem->OnPlayMode();
+    }
+    else cameraSystem->Init();
 }
 void EngineContext::Shutdown(){
     m_EditorContext->EndFrame();

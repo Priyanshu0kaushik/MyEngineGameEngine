@@ -190,9 +190,10 @@ float TerrainSystem::GetHeightAt(Entity entity, float worldX, float worldZ) {
 }
 
 glm::mat4 TerrainSystem::GetWorldMatrix(const TransformComponent* transform) {
-    if(!transform) return;
     glm::mat4 model = glm::mat4(1.0f);
-
+    
+    if(!transform) return model;
+    
     model = glm::translate(model, transform->position);
     
     model = glm::rotate(model, glm::radians(transform->rotation.x), glm::vec3(1, 0, 0));

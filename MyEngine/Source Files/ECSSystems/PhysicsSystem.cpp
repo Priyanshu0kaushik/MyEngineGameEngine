@@ -99,23 +99,31 @@ void PhysicsSystem::Update(float deltaTime)
                 // Dispatch to specific Narrowphase algorithms
                 if (typeA == ColliderType::Box && typeB == ColliderType::Box)
                 {
-                    if(CheckBoxBoxCollision(*itA, *itB)) CallLuaCollision(*itA, *itB);
+                    if(CheckBoxBoxCollision(*itA, *itB)) m_DetectedCollisions.push_back({*itA, *itB});
                 }
                 else if (typeA == ColliderType::Sphere && typeB == ColliderType::Sphere)
                 {
-                    if(CheckSphereSphereCollision(*itA, *itB)) CallLuaCollision(*itA, *itB);;
+                    if(CheckSphereSphereCollision(*itA, *itB)) m_DetectedCollisions.push_back({*itA, *itB});
                 }
                 else if (typeA == ColliderType::Sphere && typeB == ColliderType::Box)
                 {
-                    if(CheckSphereBoxCollision(*itA, *itB)) CallLuaCollision(*itA, *itB);;
+                    if(CheckSphereBoxCollision(*itA, *itB)) m_DetectedCollisions.push_back({*itA, *itB});
                 }
                 else if (typeA == ColliderType::Box && typeB == ColliderType::Sphere)
                 {
-                    if(CheckSphereBoxCollision(*itB, *itA)) CallLuaCollision(*itA, *itB);;
+                    if(CheckSphereBoxCollision(*itB, *itA)) m_DetectedCollisions.push_back({*itA, *itB});
                 }
             }
         }
     }
+        
+    //Calling Functions now
+    for (auto& col : m_DetectedCollisions) {
+        if (m_Coordinator->DoesEntityExist(col.a) && m_Coordinator->DoesEntityExist(col.b)) {
+            CallLuaCollision(col.a, col.b);
+        }
+    }
+    m_DetectedCollisions.clear();
 }
 
 
@@ -198,7 +206,7 @@ void PhysicsSystem::ProjectBox(const ColliderComponent* col, const BoxColliderCo
 // BOX vs BOX COLLISION (Separating Axis Theorem)
 // First we see using AABB, then if needed we check using SAT
 bool PhysicsSystem::CheckBoxBoxCollision(Entity entityA, Entity entityB) {
-    if(!m_Coordinator) return;
+    if(!m_Coordinator) return false;
     
     auto* colA = m_Coordinator->GetComponent<ColliderComponent>(entityA);
     auto* colB = m_Coordinator->GetComponent<ColliderComponent>(entityB);
@@ -322,7 +330,7 @@ bool PhysicsSystem::CheckBoxBoxCollision(Entity entityA, Entity entityB) {
 // SPHERE vs SPHERE
 // Simple distance check
 bool PhysicsSystem::CheckSphereSphereCollision(Entity entityA, Entity entityB) {
-    if(!m_Coordinator) return;
+    if(!m_Coordinator) return false;
     
     auto* colA = m_Coordinator->GetComponent<ColliderComponent>(entityA);
     auto* colB = m_Coordinator->GetComponent<ColliderComponent>(entityB);
@@ -351,7 +359,7 @@ bool PhysicsSystem::CheckSphereSphereCollision(Entity entityA, Entity entityB) {
 // SPHERE vs BOX
 // Find Closest Point on AABB -> Distance Check.
 bool PhysicsSystem::CheckSphereBoxCollision(Entity sphereEnt, Entity boxEnt) {
-    if(!m_Coordinator) return;
+    if(!m_Coordinator) return false;
     
     auto* sphereCol = m_Coordinator->GetComponent<ColliderComponent>(sphereEnt);
     auto* sphereData = m_Coordinator->GetComponent<SphereColliderComponent>(sphereEnt);
@@ -414,9 +422,9 @@ bool PhysicsSystem::CheckSphereBoxCollision(Entity sphereEnt, Entity boxEnt) {
 }
 
 glm::mat4 PhysicsSystem::GetWorldMatrix(const TransformComponent* transform) {
-    if(!transform) return;
     glm::mat4 model = glm::mat4(1.0f);
-
+    if(!transform) return model;
+    
     model = glm::translate(model, transform->position);
     
     model = glm::rotate(model, glm::radians(transform->rotation.x), glm::vec3(1, 0, 0));
@@ -431,11 +439,35 @@ void PhysicsSystem::CallLuaCollision(Entity a, Entity b) {
     auto* scriptA = m_Coordinator->GetComponent<ScriptComponent>(a);
     auto* scriptB = m_Coordinator->GetComponent<ScriptComponent>(b);
 
-    if (scriptA && scriptA->env["OnCollision"].valid()) {
-        scriptA->env["OnCollision"](a, b);
+    if (scriptA && scriptA->env.valid()) {
+        sol::protected_function func = scriptA->env["OnCollision"];
+        if (func.valid()) {
+            auto result = func(a, b);
+            if (!result.valid()) {
+                sol::error err = result;
+                std::cerr << "Lua OnCollision Error (A): " << err.what() << std::endl;
+            }
+        }
     }
 
-    if (scriptB && scriptB->env["OnCollision"].valid()) {
-        scriptB->env["OnCollision"](b, a);
+    if (scriptB && scriptB->env.valid()) {
+        sol::protected_function func = scriptB->env["OnCollision"];
+        if (func.valid()) {
+            auto result = func(b, a);
+            if (!result.valid()) {
+                sol::error err = result;
+                std::cerr << "Lua OnCollision Error (B): " << err.what() << std::endl;
+            }
+        }
+    }
+}
+
+void PhysicsSystem::OnPlayMode()
+{
+    for(Entity e : mEntities)
+    {
+        if(m_Coordinator->GetComponent<ColliderComponent>(e)) {
+            UpdateBounds(e);
+        }
     }
 }

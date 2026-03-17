@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <glm/glm.hpp>
 #include <vector>
+#include <string>
 
 
 enum class AssetType{

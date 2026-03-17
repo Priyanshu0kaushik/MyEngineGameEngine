@@ -11,6 +11,11 @@
 #include "Components.h"
 #include "ECS/Coordinator.h"
 
+struct CollisionData {
+    Entity a;
+    Entity b;
+};
+
 class PhysicsSystem : public ECSSystem{
 public:
     void Init() override;
@@ -20,6 +25,8 @@ public:
     void SetTerrainSystem(std::shared_ptr<TerrainSystem> terrainSystem){
         m_TerrainSystem = terrainSystem;
     }
+    
+    void OnPlayMode();
 private:
     glm::mat4 GetWorldMatrix(const TransformComponent* transform);
     bool CheckSphereSphereCollision(Entity entityA, Entity entityB);
@@ -30,6 +37,6 @@ private:
 private:
     
     std::shared_ptr<TerrainSystem> m_TerrainSystem;
-
+    std::vector<CollisionData> m_DetectedCollisions;
     glm::vec3 axes[15];
 };

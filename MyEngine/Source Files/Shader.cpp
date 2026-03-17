@@ -6,10 +6,11 @@
 //
 
 #include "Shader.h"
+#include <glad/glad.h>
+#include <GLFW/glfw3.h>
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include "glfw3.h"
 #include <glm/gtc/type_ptr.hpp>
 
 std::string Shader::LoadShader(const char *aPath){

@@ -421,8 +421,11 @@ void Scene::SyncLoadedAssets() {
     for (auto it = mPendingMeshEntities.begin(); it != mPendingMeshEntities.end(); )
     {
         Entity e = *it;
+        if (!m_Coordinator.DoesEntityExist(e)) {
+            it = mPendingMeshEntities.erase(it);
+            continue;
+        }
         auto* mc = m_Coordinator.GetComponent<MeshComponent>(e);
-        
         if(mc->meshPath.empty()){
             it = mPendingMeshEntities.erase(it);
             continue;
