@@ -8,6 +8,7 @@
 #include "ECSSystem.h"
 #include <map>
 #include <unordered_map>
+#include <memory>
 
 class ECSSystemManager
 {
