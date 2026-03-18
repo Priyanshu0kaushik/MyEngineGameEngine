@@ -71,6 +71,13 @@ void TerrainSystem::Render(Shader& shader){
                hasAlbedo = true;
            }
         }
+        else
+        {
+            AssetHandle handle = AssetManager::Get().GetAsset(terrain->mainTexturePath);
+            if (handle.IsReady) {
+                terrain->mainTexturnId = handle.iD;
+            }
+        }
         
         shader.SetBool(hasAlbedo, "u_HasTexture");
         shader.SetBool(false, "u_HasNormalMap");

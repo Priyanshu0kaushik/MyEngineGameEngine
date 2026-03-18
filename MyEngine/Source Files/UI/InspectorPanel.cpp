@@ -577,7 +577,6 @@ void InspectorPanel::DrawAssetSlot(const char* Name, std::string& relativePath, 
     if (ImGui::BeginDragDropTarget()) {
         if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM")) {
             const char* assetPath = (const char*)payload->Data;
-            fullPath = assetPath;
             
             std::string relPath = GetRelativePath(assetPath);
             
@@ -585,7 +584,7 @@ void InspectorPanel::DrawAssetSlot(const char* Name, std::string& relativePath, 
             {
                  AssetManager::Get().RemoveAssetReference(fullPath, Type);
             }
-            
+            fullPath = assetPath;
             relativePath = relPath;
             iD = UINT32_MAX;
             AssetManager::Get().GetAsset(Project::GetAbsolutePath(fullPath));

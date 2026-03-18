@@ -36,7 +36,7 @@ private:
 private:
 
     float m_CurrentCameraSpeed = 2.5f;
-    float m_MaxCameraSpeed = 15.f;
+    float m_MaxCameraSpeed = 30.f;
     float m_MinCameraSpeed = 1.5f;
     bool bFirstMouse = true;
 

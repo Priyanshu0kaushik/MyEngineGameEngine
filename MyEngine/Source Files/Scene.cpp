@@ -332,7 +332,14 @@ void Scene::Load(const std::string& filePath) {
             
             terrainComp.heightmapPath = Project::GetAbsolutePath(terrainComp.heightmapRelativePath);
             terrainComp.mainTexturePath = Project::GetAbsolutePath(terrainComp.mainTextureRelativePath);
+            
+            AssetHandle handle = AssetManager::Get().GetAsset(terrainComp.mainTexturePath);
+            if (handle.IsReady) {
+                terrainComp.mainTexturnId = handle.iD;
+            }
+            
             m_Coordinator.AddComponent<TerrainComponent>(currentEntity, terrainComp);
+
         }
         
         // 11. UI Base Component

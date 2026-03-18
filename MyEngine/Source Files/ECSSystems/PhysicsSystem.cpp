@@ -277,7 +277,11 @@ bool PhysicsSystem::CheckBoxBoxCollision(Entity entityA, Entity entityB) {
     // COLLISION RESOLUTION
     // All Axis Overlapped. Now we push objects apart.
     if (minOverlap > 0.0001f) {
-         
+        colA->isColliding = true;
+        colB->isColliding = true;
+        if (colA->isTrigger || colB->isTrigger) {
+            return true;
+        }
         // Ensure normal points from A to B
         glm::vec3 centerA = glm::vec3(colA->worldTransform[3]);
         glm::vec3 centerB = glm::vec3(colB->worldTransform[3]);
@@ -385,6 +389,11 @@ bool PhysicsSystem::CheckSphereBoxCollision(Entity sphereEnt, Entity boxEnt) {
     float distance = glm::distance(sphereCenterWorld, closestPointWorld);
     
     if (distance < sphereData->radius) {
+        sphereCol->isColliding = true;
+        boxCol->isColliding = true;
+        if (sphereCol->isTrigger || boxCol->isTrigger) {
+            return true;
+        }
         float overlap = sphereData->radius - distance;
          
         // Calculate collision normal in Local Space
@@ -411,9 +420,7 @@ bool PhysicsSystem::CheckSphereBoxCollision(Entity sphereEnt, Entity boxEnt) {
                 }
             }
         }
-         
-        sphereCol->isColliding = true;
-        boxCol->isColliding = true;
+        
         return true;
     }
     return false;
