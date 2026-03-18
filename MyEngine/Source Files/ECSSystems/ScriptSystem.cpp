@@ -25,18 +25,25 @@ void ScriptSystem::ReloadAllScripts()
 {
     m_ScriptManager->ClearCache();
 
-    for (auto const& entity : mEntities) {
-        auto* script = m_Coordinator->GetComponent<ScriptComponent>(entity);
-        script->env = m_ScriptManager->CreateEntityEnvironment(script->scriptPath);
-        
-        script->onCreate = script->env["OnCreate"];
-        script->onUpdate = script->env["OnUpdate"];
-        
-        if (script->env["OnCreate"].valid()) {
-            script->env["OnCreate"](entity);
-        }
+    for (auto const& entity : mEntities)
+    {
+        LoadScript(entity);
     }
     std::cout << "All Scripts Reloaded Successfully!" << std::endl;
+}
+
+void ScriptSystem::LoadScript(Entity entity)
+{
+    auto* script = m_Coordinator->GetComponent<ScriptComponent>(entity);
+    script->env = m_ScriptManager->CreateEntityEnvironment(script->scriptPath);
+    
+    script->onCreate = script->env["OnCreate"];
+    script->onUpdate = script->env["OnUpdate"];
+    
+    if (script->env["OnCreate"].valid()) {
+        script->env["OnCreate"](entity);
+    }
+    script->initialized = true;
 }
 
 void ScriptSystem::Update(float deltaTime)

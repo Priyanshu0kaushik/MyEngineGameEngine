@@ -335,6 +335,37 @@ void InspectorPanel::ShowScriptComponent()
         ImGui::PopStyleColor();
         ImGui::EndGroup();
         
+        if (!script->env.valid()) return;
+
+        sol::object propsObj = script->env["InspectorVariables"];
+        
+        if (propsObj.is<sol::table>()) {
+            sol::table props = propsObj.as<sol::table>();
+            
+            props.for_each([&](sol::object key, sol::object value) {
+                if (value.is<sol::table>()) {
+                    sol::table prop = value.as<sol::table>();
+                    
+                    std::string name = prop["name"].get_or(std::string("Unknown"));
+                    std::string type = prop["type"].get_or(std::string("int"));
+
+                    if (type == "int") {
+                        int val = script->env[name].get_or(0);
+                        if (ImGui::InputInt(name.c_str(), &val)) {
+                            script->env[name] = val;
+                        }
+                    }
+                    else if (type == "string") {
+                        std::string val = script->env[name].get_or(std::string(""));
+                        char buf[128];
+                        strncpy(buf, val.c_str(), sizeof(buf));
+                        if (ImGui::InputText(name.c_str(), buf, sizeof(buf))) {
+                            script->env[name] = std::string(buf);
+                        }
+                    }
+                }
+            });
+        }
         ImGui::Spacing();
         RemoveComponentButton<ScriptComponent>();
         ImGui::Separator();

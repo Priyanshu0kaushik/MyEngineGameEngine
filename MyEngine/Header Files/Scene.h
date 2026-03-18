@@ -11,12 +11,13 @@
 #include "ECS/Coordinator.h"
 #include "ECSSystems/RenderSystem.h"
 #include "ECSSystems/CameraSystem.h"
+#include "ECSSystems/ScriptSystem.h"
 
 class Shader;
 class Scene{
 public:
-    Scene(Coordinator& coordinator, std::shared_ptr<RenderSystem> rs, std::shared_ptr<CameraSystem> cs)
-            : m_Coordinator(coordinator), renderSystem(rs), cameraSystem(cs) {}
+    Scene(Coordinator& coordinator, std::shared_ptr<RenderSystem> rs, std::shared_ptr<CameraSystem> cs, std::shared_ptr<ScriptSystem> ss)
+            : m_Coordinator(coordinator), renderSystem(rs), cameraSystem(cs), scriptSystem(ss) {}
     
     Entity AddEntity(char* aName);
     void RemoveEntity(Entity e);
@@ -42,4 +43,5 @@ private:
 
     std::shared_ptr<RenderSystem> renderSystem;
     std::shared_ptr<CameraSystem> cameraSystem;
+    std::shared_ptr<ScriptSystem> scriptSystem;
 };

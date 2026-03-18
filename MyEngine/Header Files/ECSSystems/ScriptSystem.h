@@ -17,6 +17,7 @@ public:
     void Init() override;
     void Update(float deltaTime);
     void SetEngineContext(EngineContext* engineContext);
+    void LoadScript(Entity entity);
     void ReloadAllScripts();
 private:
     std::unique_ptr<ScriptManager> m_ScriptManager;

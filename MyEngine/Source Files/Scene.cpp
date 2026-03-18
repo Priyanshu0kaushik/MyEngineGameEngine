@@ -120,6 +120,39 @@ void Scene::Save() {
         {
             // script path
             file << "ScriptPath: " << scriptComp->scriptRelativePath << "\n";
+
+            if (scriptComp->env.valid())
+            {
+                sol::object propsObj = scriptComp->env["InspectorVariables"];
+                
+                if (propsObj.is<sol::table>()) {
+                    sol::table props = propsObj.as<sol::table>();
+                    
+                    props.for_each([&](sol::object key, sol::object value) {
+                        if (value.is<sol::table>()) {
+                            sol::table prop = value.as<sol::table>();
+                            
+                            sol::object nameObj = prop["name"];
+                            sol::object typeObj = prop["type"];
+                            
+                            if (nameObj.is<std::string>() && typeObj.is<std::string>()) {
+                                std::string name = nameObj.as<std::string>();
+                                std::string type = typeObj.as<std::string>();
+                                file << "ScriptProp: " << name << " " << type << " ";
+                
+                                if (type == "int") {
+                                    int val = scriptComp->env[name].get_or(0);
+                                    file << val << "\n";
+                                }
+                                else if (type == "string") {
+                                    std::string val = scriptComp->env[name].get_or(std::string(""));
+                                    file << val << "\n";
+                                }
+                            }
+                        }
+                    });
+                }
+            }
         }
         
         // 10. Terrain Component
@@ -320,6 +353,28 @@ void Scene::Load(const std::string& filePath) {
             ss >> script.scriptRelativePath;
             script.scriptPath = Project::GetAbsolutePath(script.scriptRelativePath);
             m_Coordinator.AddComponent<ScriptComponent>(currentEntity, script);
+            
+            scriptSystem->LoadScript(currentEntity);
+        }
+        else if (line.find("ScriptProp: ") == 0) {
+            auto* sc = m_Coordinator.GetComponent<ScriptComponent>(currentEntity);
+            if (sc && sc->env.valid()) {
+                std::stringstream ss(line.substr(12));
+                std::string name, type;
+                ss >> name >> type;
+                if (type == "int")
+                {
+                    int val;
+                    ss >> val;
+                    sc->env.set(name, val);
+                }
+                else if (type == "string")
+                {
+                    std::string val;
+                    ss >> val;
+                    sc->env.set(name, val);
+                }
+            }
         }
         
         // 10. Terrain Component
