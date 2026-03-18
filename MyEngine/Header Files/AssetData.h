@@ -65,9 +65,14 @@ struct Material{
     uint32_t normalID  = UINT32_MAX;
     uint32_t specID    = UINT32_MAX;
 
+    
     std::string albedoPath = "";
     std::string normalPath  = "";
     std::string specPath    = "";
+    
+    std::string albedoRelativePath = "";
+    std::string normalRelativePath  = "";
+    std::string specRelativePath    = "";
 };
 
 struct AssetHandle{

@@ -56,7 +56,7 @@ void TerrainSystem::Render(Shader& shader){
         glm::mat4 model = GetWorldMatrix(transform);
         shader.SetMatrix4(model, "transformMatrix");
 
-
+        shader.SetBool(false, "u_HasTexture");
 
         bool hasAlbedo = false;
         if (terrain->mainTexturnId != UINT32_MAX)

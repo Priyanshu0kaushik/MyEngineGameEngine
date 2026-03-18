@@ -373,18 +373,16 @@ bool PhysicsSystem::CheckSphereBoxCollision(Entity sphereEnt, Entity boxEnt) {
     
     auto* boxTransform = m_Coordinator->GetComponent<TransformComponent>(boxEnt);
     glm::vec3 worldScale = boxTransform->scale;
-
-    // Scaled extents
-    glm::vec3 scaledExtents = boxData->extents * worldScale;
     
     // Find closest point on the Box to the Sphere center (Clamp)
     glm::vec3 closestPoint;
-    closestPoint.x = glm::clamp(localSphereCenter.x, -scaledExtents.x, scaledExtents.x);
-    closestPoint.y = glm::clamp(localSphereCenter.y, -scaledExtents.y, scaledExtents.y);
-    closestPoint.z = glm::clamp(localSphereCenter.z, -scaledExtents.z, scaledExtents.z);
+    closestPoint.x = glm::clamp(localSphereCenter.x, -boxData->extents.x, boxData->extents.x);
+    closestPoint.y = glm::clamp(localSphereCenter.y, -boxData->extents.y, boxData->extents.y);
+    closestPoint.z = glm::clamp(localSphereCenter.z, -boxData->extents.z, boxData->extents.z);
     
     // Check distance
-    float distance = glm::distance(localSphereCenter, closestPoint);
+    glm::vec3 closestPointWorld = glm::vec3(boxCol->worldTransform * glm::vec4(closestPoint, 1.0f));
+    float distance = glm::distance(sphereCenterWorld, closestPointWorld);
     
     if (distance < sphereData->radius) {
         float overlap = sphereData->radius - distance;

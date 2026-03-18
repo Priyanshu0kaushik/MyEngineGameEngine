@@ -26,7 +26,13 @@ void HierarchyPanel::Draw(EditorDrawContext& context)
             
         }
         if (ImGui::BeginPopupContextItem(("object_context_menu##" + std::to_string(e)).c_str())) {
-            if (ImGui::MenuItem("Delete"))
+            if(ImGui::MenuItem("Duplicate"))
+            {
+                if(context.engine){
+                    *context.selectedEntity = context.engine->DuplicateEntity(e);
+                }
+            }
+            else if (ImGui::MenuItem("Delete"))
             {
                 if(context.engine){
                     context.engine->DeleteEntity(e);

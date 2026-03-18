@@ -433,7 +433,7 @@ void EditorContext::DrawLauncher() {
 
     if (ImGui::BeginPopupModal("New Project Setup", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
         static char nameBuf[128] = "MyNewGame";
-        static char pathBuf[256] = "/Users/priyanshukaushik/MyEngineProjects";
+        static char pathBuf[256] = "PathHere";
 
         ImGui::InputText("Project Name", nameBuf, IM_ARRAYSIZE(nameBuf));
         

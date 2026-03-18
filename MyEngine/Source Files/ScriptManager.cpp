@@ -154,6 +154,12 @@ void ScriptManager::Init()
             file.close();
         }
     });
+    
+    m_Lua.set_function("GetScript", [this](Entity entity) -> sol::table {
+        auto* script = m_Coordinator->GetComponent<ScriptComponent>(entity);
+        if(!script) return sol::nil;
+        return script->env;
+    });
 }
 
 void ScriptManager::SetCoordinator(Coordinator *aCoordinator){

@@ -20,6 +20,7 @@ public:
     
     Entity AddEntity(char* aName);
     void RemoveEntity(Entity e);
+    Entity DuplicateEntity(Entity entity);
     
     void SyncLoadedAssets();
     bool SyncMaterial(Material& material);

@@ -136,6 +136,47 @@ public:
         return mComponentManager->GetComponentNames();
     }
     
+    Entity CopyComponents(Entity sourceEntity, Entity newEntity)
+    {
+
+        auto* sourceTrans = GetComponent<TransformComponent>(sourceEntity);
+        auto* newTrans = GetComponent<TransformComponent>(newEntity);
+        if (sourceTrans) {
+            *newTrans = *sourceTrans;
+        }
+
+        auto* sourceMesh = GetComponent<MeshComponent>(sourceEntity);
+        if (sourceMesh) {
+            AddComponent(newEntity, *sourceMesh);
+        }
+
+        auto* sourceRB = GetComponent<RigidBodyComponent>(sourceEntity);
+        if (sourceRB) {
+            AddComponent(newEntity, *sourceRB);
+        }
+
+        auto* sourceBox = GetComponent<BoxColliderComponent>(sourceEntity);
+        if (sourceBox) {
+            AddComponent(newEntity, *sourceBox);
+        }
+        
+        auto* sourceSphere = GetComponent<SphereColliderComponent>(sourceEntity);
+        if (sourceSphere) {
+            AddComponent(newEntity, *sourceSphere);
+        }
+        
+        auto* sourceCol = GetComponent<ColliderComponent>(sourceEntity);
+        if (sourceCol) {
+            AddComponent(newEntity, *sourceCol);
+        }
+        
+        auto* sourceScript = GetComponent<ScriptComponent>(sourceEntity);
+        if(sourceScript){
+            AddComponent(newEntity, *sourceScript);
+        }
+        return newEntity;
+    }
+    
 private:
     std::unordered_map<std::string, std::function<void(Entity)>> mComponentCreators;
     std::unique_ptr<ComponentManager> mComponentManager;

@@ -74,6 +74,7 @@ struct MeshComponent
     Material material;
     uint32_t meshID = UINT32_MAX;
 
+    std::string meshRelativePath = "";
     std::string meshPath  = "";
 
     static constexpr const char* TypeName = "Mesh Component";
@@ -89,7 +90,7 @@ struct CameraComponent
     
     float Fov = 60.f;
     float Near = 0.1f;
-    float Far = 100.f;
+    float Far = 2000.f;
 
     float AspectRatio = 1280.f/720.f;
     float Yaw = -90.0f;
@@ -186,6 +187,7 @@ struct SphereColliderComponent
 
 struct ScriptComponent
 {
+    std::string scriptRelativePath;
     std::string scriptPath;
     sol::environment env;
     bool initialized = false;
@@ -199,6 +201,7 @@ struct ScriptComponent
 
 struct TerrainComponent {
     std::string heightmapPath, mainTexturePath;
+    std::string heightmapRelativePath, mainTextureRelativePath;
     
     int width = 0;
     int height = 0;

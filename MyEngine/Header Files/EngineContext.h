@@ -83,6 +83,7 @@ public:
 public:
     Entity CreateEntity(char* Name);
     void DeleteEntity(Entity aEntity);
+    Entity DuplicateEntity(Entity sourceEntity);
 private:
     void InitViewportFramebuffer(int width, int height);
     void InitShadowMap();

@@ -169,26 +169,31 @@ void InspectorPanel::ShowTerrainComponent()
         
         ImGui::Spacing();
         
-        DrawAssetSlot("Main Texture", terrain->mainTexturePath, terrain->mainTexturnId, AssetType::Texture);
+        DrawAssetSlot("Main Texture", terrain->mainTextureRelativePath, terrain->mainTexturePath, terrain->mainTexturnId, AssetType::Texture);
         UpdateAssetSlot(terrain->mainTexturePath, terrain->mainTexturnId);
 
         
         ImGui::TextWrapped("Change HeightMap");
         
-        ImGui::Button(terrain->heightmapPath.empty() ? "None" : "File", ImVec2(64, 64));
+        ImGui::Button(terrain->heightmapRelativePath.empty() ? "None" : "File", ImVec2(64, 64));
         
         if (ImGui::BeginDragDropTarget()) {
             if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
             {
                 const char* assetPath = (const char*)payload->Data;
                 
-                std::filesystem::path filePath(assetPath);
+                std::string relativePath = GetRelativePath(assetPath);
+                
+                std::filesystem::path filePath(relativePath);
                 if (!filePath.has_extension()) return;
                 
                 std::string lowerStr = filePath.extension().string();
                 std::transform(lowerStr.begin(), lowerStr.end(), lowerStr.begin(), ::tolower);
                 std::cout<< lowerStr<<std::endl;
-                if(lowerStr == ".png") terrain->heightmapPath = assetPath;
+                if(lowerStr == ".png"){
+                    terrain->heightmapRelativePath = relativePath;
+                    terrain->heightmapPath = assetPath;
+                }
                 
                 std::cout << "Dropped : " << terrain->heightmapPath << std::endl;
             }
@@ -254,7 +259,7 @@ void InspectorPanel::ShowMeshComponent()
     
     if (ImGui::CollapsingHeader("Mesh Component", ImGuiTreeNodeFlags_DefaultOpen)){
         
-        DrawAssetSlot("Mesh",mesh->meshPath , mesh->meshID, AssetType::Mesh);
+        DrawAssetSlot("Mesh", mesh->meshRelativePath, mesh->meshPath, mesh->meshID, AssetType::Mesh);
         bool MeshLoaded = UpdateAssetSlot(mesh->meshPath, mesh->meshID);
         
         Mesh* meshData = static_cast<Mesh*>(AssetManager::Get().GetAsset(AssetType::Mesh, mesh->meshID).Data);
@@ -308,15 +313,19 @@ void InspectorPanel::ShowScriptComponent()
             {
                 const char* assetPath = (const char*)payload->Data;
                 
-                std::filesystem::path filePath(assetPath);
+                std::string relativePath = GetRelativePath(assetPath);
+                std::filesystem::path filePath(relativePath);
                 if (!filePath.has_extension()) return;
                 
                 std::string lowerStr = filePath.extension().string();
                 std::transform(lowerStr.begin(), lowerStr.end(), lowerStr.begin(), ::tolower);
                 std::cout<< lowerStr<<std::endl;
-                if(lowerStr == ".lua") script->scriptPath = assetPath;
+                if(lowerStr == ".lua"){
+                    script->scriptRelativePath = relativePath;
+                    script->scriptPath = assetPath;
+                }
                 
-                std::cout << "Dropped : " << script->scriptPath << std::endl;
+                std::cout << "Dropped : " << script->scriptRelativePath << std::endl;
             }
             ImGui::EndDragDropTarget();
             
@@ -463,6 +472,8 @@ void InspectorPanel::ShowBoxColliderComponent()
     {
         ImGui::DragFloat("Friction", &collider->friction, 0.1f, 0.0f, 1.0f);
         ImGui::DragFloat("Bounciness", &collider->bounciness, 0.1f, 0.0f, 1.0f);
+        ImGui::Checkbox("Trigger", &collider->isTrigger);
+        
         
         if(ImGui::DragFloat3("Center", &collider->center.x, 0.1f)){
             collider->isDirty = true;
@@ -507,9 +518,9 @@ void InspectorPanel::ShowMaterialSetting(Material& material)
 {
     auto& Textures = AssetManager::Get().GetTextureManager().GetAllTextures();
 
-    DrawAssetSlot("Main Texture", material.albedoPath, material.albedoID, AssetType::Texture);
-    DrawAssetSlot("Normal Map", material.normalPath, material.normalID, AssetType::Texture);
-    DrawAssetSlot("Specular Map", material.specPath, material.specID, AssetType::Texture);
+    DrawAssetSlot("Main Texture",material.albedoRelativePath, material.albedoPath, material.albedoID, AssetType::Texture);
+    DrawAssetSlot("Normal Map", material.normalRelativePath, material.normalPath, material.normalID, AssetType::Texture);
+    DrawAssetSlot("Specular Map", material.specRelativePath, material.specPath, material.specID, AssetType::Texture);
     
     UpdateAssetSlot(material.albedoPath, material.albedoID);
     UpdateAssetSlot(material.normalPath, material.normalID);
@@ -525,7 +536,7 @@ void InspectorPanel::ShowMaterialSetting(Material& material)
     
 }
 
-void InspectorPanel::DrawAssetSlot(const char* Name, std::string &path, uint32_t &iD, AssetType Type)
+void InspectorPanel::DrawAssetSlot(const char* Name, std::string& relativePath, std::string& fullPath, uint32_t& iD, AssetType Type)
 {
     ImGui::PushID(Name);
     ImGui::BeginGroup();
@@ -560,28 +571,32 @@ void InspectorPanel::DrawAssetSlot(const char* Name, std::string &path, uint32_t
         ImGui::Image((ImTextureID)(uintptr_t)openGLHandle, ImVec2(40, 40), ImVec2(0, 1), ImVec2(1, 0), ImVec4(1,1,1,1), ImVec4(1,1,1,0.2f));
     }
     else {
-        ImGui::Button(path.empty() ? "None" : "FILE", ImVec2(64, 64));
+        ImGui::Button(relativePath.empty() ? "None" : "FILE", ImVec2(64, 64));
     }
 
     if (ImGui::BeginDragDropTarget()) {
         if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM")) {
             const char* assetPath = (const char*)payload->Data;
-            if (!path.empty() && path != assetPath)
+            fullPath = assetPath;
+            
+            std::string relPath = GetRelativePath(assetPath);
+            
+            if (!fullPath.empty() && fullPath != assetPath)
             {
-                 AssetManager::Get().RemoveAssetReference(path, Type);
+                 AssetManager::Get().RemoveAssetReference(fullPath, Type);
             }
             
-            path = assetPath;
+            relativePath = relPath;
             iD = UINT32_MAX;
-            AssetManager::Get().GetAsset(path);
-            std::cout << "Dropped and Loaded: " << path << std::endl;
+            AssetManager::Get().GetAsset(Project::GetAbsolutePath(fullPath));
+            std::cout << "Dropped and Loaded: " << fullPath << std::endl;
         }
         ImGui::EndDragDropTarget();
     }
     ImGui::SameLine();
     ImGui::BeginChild(Name, ImVec2(0, 40), false, ImGuiWindowFlags_NoScrollbar);
-    ImGui::TextWrapped("%s", path.empty() ? "Drop Asset Here" : std::filesystem::path(path).filename().string().c_str());
-    if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", path.c_str());
+    ImGui::TextWrapped("%s", relativePath.empty() ? "Drop Asset Here" : std::filesystem::path(relativePath).filename().string().c_str());
+    if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", relativePath.c_str());
     ImGui::EndChild();
 
     ImGui::PopStyleVar();
@@ -643,3 +658,14 @@ void InspectorPanel::RemoveReference(const std::string &path, AssetType type) {
     AssetManager::Get().RemoveAssetReference(path, type);
 }
 
+std::string InspectorPanel::GetRelativePath(const std::string& fullPath)
+{
+    std::filesystem::path assetDir = Project::GetAssetDirectory();
+    std::filesystem::path p = std::filesystem::path(fullPath);
+
+    auto relative = std::filesystem::relative(p, assetDir);
+    if (!relative.empty() && relative.string().find("..") == std::string::npos) {
+        return relative.string();
+    }
+    return fullPath;
+}

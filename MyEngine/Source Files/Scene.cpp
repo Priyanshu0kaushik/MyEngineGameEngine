@@ -29,6 +29,13 @@ Entity Scene::AddEntity(char* aName)
     return e;
 }
 
+Entity Scene::DuplicateEntity(Entity entity)
+{
+    
+    Entity newEntity = AddEntity(&m_Coordinator.GetComponent<NameComponent>(entity)->Name[0]);
+    m_Coordinator.CopyComponents(entity, newEntity);
+}
+
 void Scene::Save() {
     const std::string& filePath = Project::GetActiveAbsoluteScenePath();
     std::ofstream file(filePath);
@@ -112,14 +119,14 @@ void Scene::Save() {
         if(auto* scriptComp = m_Coordinator.GetComponent<ScriptComponent>(entity))
         {
             // script path
-            file << "ScriptPath: " << scriptComp->scriptPath << "\n";
+            file << "ScriptPath: " << scriptComp->scriptRelativePath << "\n";
         }
         
         // 10. Terrain Component
         if(auto* terrainComp = m_Coordinator.GetComponent<TerrainComponent>(entity))
         {
-            file << "HeightmapPath: " << terrainComp->heightmapPath << " " << terrainComp->terrainScale << " " << terrainComp->maxHeight
-            << " " << terrainComp->mainTexturePath << "\n";
+            file << "HeightmapPath: " << terrainComp->heightmapRelativePath << " " << terrainComp->terrainScale << " " << terrainComp->maxHeight
+            << " " << terrainComp->mainTextureRelativePath << "\n";
         }
         
         // 11. Base Ui Component
@@ -150,7 +157,7 @@ void Scene::Save() {
                 file << "MeshPath: " << "No Path" << "\n";
                 continue;
             }
-            else file << "MeshPath: " << mc->meshPath << "\n";
+            else file << "MeshPath: " << mc->meshRelativePath << "\n";
             
             // Material Data
             auto& mat = mc->material;
@@ -159,9 +166,9 @@ void Scene::Save() {
             file << "Mat_Shininess: " << mat.Shininess << "\n";
             
             // Texture Paths
-            if (!mat.albedoPath.empty()) file << "Tex_Albedo: " << mat.albedoPath << "\n";
-            if (!mat.normalPath.empty()) file << "Tex_Normal: " << mat.normalPath << "\n";
-            if (!mat.specPath.empty())   file << "Tex_Spec: " << mat.specPath << "\n";
+            if (!mat.albedoPath.empty()) file << "Tex_Albedo: " << mat.albedoRelativePath << "\n";
+            if (!mat.normalPath.empty()) file << "Tex_Normal: " << mat.normalRelativePath << "\n";
+            if (!mat.specPath.empty())   file << "Tex_Spec: " << mat.specRelativePath << "\n";
         }
 
 
@@ -310,7 +317,8 @@ void Scene::Load(const std::string& filePath) {
             ScriptComponent script;
             std::stringstream ss(line.substr(12));
             
-            ss >> script.scriptPath;
+            ss >> script.scriptRelativePath;
+            script.scriptPath = Project::GetAbsolutePath(script.scriptRelativePath);
             m_Coordinator.AddComponent<ScriptComponent>(currentEntity, script);
         }
         
@@ -320,8 +328,10 @@ void Scene::Load(const std::string& filePath) {
             TerrainComponent terrainComp;
             std::stringstream ss(line.substr(15));
             
-            ss >> terrainComp.heightmapPath >> terrainComp.terrainScale >>terrainComp.maxHeight>> terrainComp.mainTexturePath;
+            ss >> terrainComp.heightmapRelativePath >> terrainComp.terrainScale >>terrainComp.maxHeight>> terrainComp.mainTextureRelativePath;
             
+            terrainComp.heightmapPath = Project::GetAbsolutePath(terrainComp.heightmapRelativePath);
+            terrainComp.mainTexturePath = Project::GetAbsolutePath(terrainComp.mainTextureRelativePath);
             m_Coordinator.AddComponent<TerrainComponent>(currentEntity, terrainComp);
         }
         
@@ -369,7 +379,8 @@ void Scene::Load(const std::string& filePath) {
         // 14. Mesh Component
         else if (line.find("MeshPath: ") == 0) {
             MeshComponent mc;
-            mc.meshPath = line.substr(10);
+            mc.meshRelativePath = line.substr(10);
+            mc.meshPath = Project::GetAbsolutePath(mc.meshRelativePath);
             if(mc.meshPath == "No Path") {
                 mc.meshPath.clear();
                 m_Coordinator.AddComponent<MeshComponent>(currentEntity, mc);
@@ -386,15 +397,18 @@ void Scene::Load(const std::string& filePath) {
                 else if (tag == "Mat_Diffuse:") ss >> mc.material.Diffuse.x >> mc.material.Diffuse.y >> mc.material.Diffuse.z;
                 else if (tag == "Mat_Shininess:") ss >> mc.material.Shininess;
                 else if (tag == "Tex_Albedo:") {
-                    mc.material.albedoPath = matLine.substr(12);
+                    mc.material.albedoRelativePath = matLine.substr(12);
+                    mc.material.albedoPath = Project::GetAbsolutePath(mc.material.albedoRelativePath);
                     AssetManager::Get().GetAsset(mc.material.albedoPath);
                 }
                 else if (tag == "Tex_Normal:"){
-                    mc.material.normalPath = matLine.substr(12);
+                    mc.material.normalRelativePath = matLine.substr(12);
+                    mc.material.normalPath = Project::GetAbsolutePath(mc.material.normalRelativePath);
                     AssetManager::Get().GetAsset(mc.material.normalPath);
                 }
                 else if (tag == "Tex_Spec:"){
-                    mc.material.specPath = matLine.substr(10);
+                    mc.material.specRelativePath = matLine.substr(10);
+                    mc.material.specPath = Project::GetAbsolutePath(mc.material.specRelativePath);
                     AssetManager::Get().GetAsset(mc.material.specPath);
                 }
                 

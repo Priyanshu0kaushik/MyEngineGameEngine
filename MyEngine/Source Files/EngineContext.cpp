@@ -448,6 +448,12 @@ Entity EngineContext::CreateEntity(char *Name){
     return m_Scene->AddEntity(Name);
 }
 
+Entity EngineContext::DuplicateEntity(Entity sourceEntity)
+{
+    if(!m_Scene) return UINT32_MAX;
+    return m_Scene->DuplicateEntity(sourceEntity);
+}
+
 void EngineContext::DeleteEntity(Entity aEntity){
     if(m_Scene) m_Scene->RemoveEntity(aEntity);
 }

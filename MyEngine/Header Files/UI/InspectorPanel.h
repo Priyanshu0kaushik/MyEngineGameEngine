@@ -26,11 +26,12 @@ private:
     void ShowTerrainComponent();
     void ShowUITextComponent();
     void ShowUIButtonComponent();
+    std::string GetRelativePath(const std::string& fullPath);
     
     void RenameRender();
     void ShowMaterialSetting(Material& material);
     
-    void DrawAssetSlot(const char* Name, std::string& path, uint32_t& iD, AssetType Type);
+    void DrawAssetSlot(const char* Name, std::string& relativePath, std::string& fullPath, uint32_t& iD, AssetType Type);
     bool UpdateAssetSlot(std::string& path, uint32_t& id);
     
     void RemoveReference(const std::string& path, AssetType type);
