@@ -106,7 +106,8 @@ void ScriptManager::Init()
         "gravityScale", &RigidBodyComponent::gravityScale,
         "isStatic", &RigidBodyComponent::isStatic,
         "isKinematic", &RigidBodyComponent::isKinematic,
-        "AddForce", &RigidBodyComponent::AddForce
+        "AddForce", &RigidBodyComponent::AddForce,
+        "AddImpulse", &RigidBodyComponent::AddImpulse
     );
     
     m_Lua.new_usertype<UITextComponent>("UITextComponent",

@@ -136,6 +136,13 @@ struct RigidBodyComponent {
         }
     }
     
+    void AddImpulse(glm::vec3 impulse)
+    {
+        if (!isStatic) {
+            velocity += impulse;
+        }
+    }
+    
     static constexpr const char* TypeName = "RigidBody Component";
     static constexpr const bool UniquePerEntity = true;
 };
