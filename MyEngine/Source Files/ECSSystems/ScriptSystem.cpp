@@ -46,6 +46,23 @@ void ScriptSystem::LoadScript(Entity entity)
     script->initialized = true;
 }
 
+void ScriptSystem::OnPlayMode()
+{
+    for (auto const& entity : mEntities)
+    {
+        auto* script = m_Coordinator->GetComponent<ScriptComponent>(entity);
+        if(!script || script->scriptPath.empty()) continue;
+        if (script->onCreate.valid()) {
+            auto result = script->onCreate(entity);
+            if (!result.valid()) {
+                sol::error err = result;
+                std::cerr << "Lua OnCreate Error: " << err.what() << std::endl;
+            }
+        }
+        
+    }
+}
+
 void ScriptSystem::Update(float deltaTime)
 {
     for (auto const& entity : mEntities)

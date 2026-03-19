@@ -62,6 +62,9 @@ public:
     void LoadScene(std::string path);
     void SaveScene();
     
+    void StartPlayTimer();
+    float GetPlayTime(){ return m_PlayTime;}
+    float StopPlayTimer();
     void QuitGame();
     
     void OnStartControlCam();
@@ -125,10 +128,11 @@ private:
     float m_DeltaTime = 0.0f;
     float m_LastFrameTime = 0.0f;
     float fpsTimer = 0.0f;
+    float m_PlayTime = 0.0f;
     int frameCount = 0;
     int FPS = 0;
     
     bool m_SceneChangeRequested = false;
     bool bControllingCamera = false;
-    
+    bool m_isPlaying = false;
 };

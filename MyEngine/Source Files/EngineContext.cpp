@@ -410,6 +410,11 @@ void EngineContext::Draw(){
                 bool mouseClicked = ImGui::IsMouseClicked(ImGuiMouseButton_Left);
                 uiSystem->Update(m_DeltaTime, correctedMousePos, mouseClicked);
                 
+                if(m_isPlaying)
+                {
+                    m_PlayTime += m_DeltaTime;
+                }
+                
             }
             
             //Unbinding
@@ -526,6 +531,7 @@ void EngineContext::LoadScene(std::string path)
     if(m_State == EngineState::Play){
         cameraSystem->OnPlayMode();
         physicsSystem->OnPlayMode();
+        scriptSystem->OnPlayMode();
     }
     else cameraSystem->Init();
 }
@@ -536,4 +542,16 @@ void EngineContext::Shutdown(){
     JobSystem::Get().Shutdown();
     Cleanup();
     glfwTerminate();
+}
+
+void EngineContext::StartPlayTimer()
+{
+    m_PlayTime = 0.f;
+    m_isPlaying = true;
+}
+
+float EngineContext::StopPlayTimer()
+{
+    m_isPlaying = false;
+    return m_PlayTime;
 }

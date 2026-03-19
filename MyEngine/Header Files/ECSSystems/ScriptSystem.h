@@ -17,6 +17,7 @@ public:
     void Init() override;
     void Update(float deltaTime);
     void SetEngineContext(EngineContext* engineContext);
+    void OnPlayMode();
     void LoadScript(Entity entity);
     void ReloadAllScripts();
 private:

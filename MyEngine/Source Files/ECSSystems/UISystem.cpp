@@ -82,6 +82,7 @@ void UISystem::Update(float deltaTime, glm::vec2 mousePos, bool mouseClicked)
                 if (script && script->initialized)
                 {
                     sol::protected_function func = script->env["OnButtonClicked"];
+                    sol::set_environment(script->env, func);
                     
                     if (!func.valid()) continue;
                     auto result = func();

@@ -33,6 +33,18 @@ void ScriptManager::Init()
         m_EngineContext->QuitGame();
     });
     
+    m_Lua.set_function("StartPlayTimer", [this]() {
+        m_EngineContext->StartPlayTimer();
+    });
+    
+    m_Lua.set_function("StopPlayTimer", [this]() {
+        return m_EngineContext->StopPlayTimer();
+    });
+    
+    m_Lua.set_function("GetPlayTime", [this]() {
+        return m_EngineContext->GetPlayTime();
+    });
+    
     m_Lua.set_function("FindEntityByName", [this](std::string Name){
         return m_EngineContext->GetScene()->FindEntityByName(Name);
     });
@@ -139,7 +151,7 @@ void ScriptManager::Init()
     });
     
     m_Lua.set_function("ReadFile", [](std::string path) {
-        std::ifstream file(path);
+        std::ifstream file(Project::GetAbsolutePath(path));
         if (!file.is_open()) return std::string("");
         
         std::stringstream buffer;
@@ -148,7 +160,7 @@ void ScriptManager::Init()
     });
 
     m_Lua.set_function("AppendFile", [](std::string path, std::string content) {
-        std::ofstream file(path, std::ios_base::app);
+        std::ofstream file(Project::GetAbsolutePath(path), std::ios_base::app);
         if (file.is_open()) {
             file << content;
             file.close();
@@ -197,3 +209,77 @@ sol::environment ScriptManager::CreateEntityEnvironment(const std::string &scrip
 
     return env;
 }
+
+
+//sol::environment ScriptManager::CreateEntityEnvironment(const std::string &scriptPath)
+//{
+//    // Isolated env — no global inheritance
+//    sol::environment env(m_Lua, sol::create);
+//
+//    // Copy all engine-registered globals into this env
+//    // Add any name here you want scripts to access
+//    static const std::vector<std::string> k_EngineGlobals = {
+//        // stdlib (you opened these in Init)
+//        "print", "ipairs", "pairs", "next", "type", "tostring", "tonumber",
+//        "math", "table", "string", "select", "unpack", "error", "assert",
+//        // engine functions
+//        "IsKeyPressed", "LoadScene", "QuitGame",
+//        "StartPlayTimer", "StopPlayTimer", "GetPlayTime",
+//        "FindEntityByName", "DestroyEntity", "GetScript",
+//        "GetName", "GetTransform", "GetRigidBody", "GetCamera",
+//        "GetUIBase", "GetTextUI", "ReadFile", "AppendFile",
+//        // enums & usertypes (sol registers these as globals too)
+//        "LightType", "ColliderType", "vec3",
+//        "Transform", "RigidBody", "UITextComponent",
+//        "UIBase", "Camera", "NameComponent"
+//    };
+//
+//    for (const auto& name : k_EngineGlobals) {
+//        env[name] = m_Lua[name];
+//    }
+//
+//    // Load + cache script
+//    if (m_CompiledScripts.find(scriptPath) == m_CompiledScripts.end()) {
+//        auto loadResult = m_Lua.load_file(scriptPath);
+//        if (!loadResult.valid()) {
+//            sol::error err = loadResult;
+//            std::cerr << "Failed to load script: " << scriptPath << "\n" << err.what();
+//            return env;
+//        }
+//        m_CompiledScripts[scriptPath] = loadResult;
+//    }
+//
+//    sol::protected_function scriptFunc = m_CompiledScripts[scriptPath];
+//    sol::set_environment(env, scriptFunc);
+//
+//    auto result = scriptFunc();
+//    if (!result.valid()) {
+//        sol::error err = result;
+//        std::cerr << "Script execution error: " << err.what();
+//    }
+//
+//    // Inject InspectorVariables as per-env locals
+//    sol::optional<sol::table> vars = env["InspectorVariables"];
+//    if (vars.has_value()) {
+//        for (auto& [_, entry] : vars.value()) {
+//            if (!entry.is<sol::table>()) continue;
+//            sol::table t = entry.as<sol::table>();
+//
+//            sol::optional<std::string> name = t["name"];
+//            sol::optional<std::string> type = t["type"];
+//            sol::object value = t["value"];
+//
+//            if (!name.has_value() || !type.has_value()) continue;
+//
+//            if (type.value() == "string") {
+//                env[name.value()] = value.as<std::string>();
+//            } else if (type.value() == "number") {
+//                env[name.value()] = value.as<float>();
+//            } else if (type.value() == "bool") {
+//                env[name.value()] = value.as<bool>();
+//            }
+//        }
+//    }
+//
+//    return env;
+//}
