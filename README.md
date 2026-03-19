@@ -46,6 +46,25 @@ Uses **Modern OpenGL (3.3+)** with a forward rendering path.
 * **Lighting & Effects:** Implements **Blinn–Phong** lighting.
   * Uses **TBN matrices** for high-fidelity normal mapping.
 
+### 4. Physics & Collisions
+A custom rigid body physics system built from scratch.
+* **Rigid Body Simulation:** Supports gravity, velocity, acceleration, and configurable damping. Bodies can be marked as static, kinematic, or fully dynamic with individual mass and gravity scale.
+* **Collision Detection:**
+  * **Broadphase:** AABB overlap test as a fast-reject pass before narrowphase.
+  * **Narrowphase:** SAT (Separating Axis Theorem) for Box-Box, distance check for Sphere-Sphere, and closest-point clamping for Sphere-Box.
+* **Collision Resolution:** MTV (Minimum Translation Vector) positional correction with mass-weighted push-out and restitution-based velocity reflection.
+* **Terrain Collision:** Dynamic height sampling against the terrain mesh with per-collider ground offset.
+* **Trigger Volumes:** Colliders can be marked as triggers — they fire callbacks without applying physical resolution.
+
+### 5. UI System
+A custom UI system built with OpenGL and FreeType, separate from the editor UI (Dear ImGui).
+* **Text Rendering:** FreeType-based glyph rasterization with per-character texture atlas, bearing/advance metrics, and newline support. Batches glyphs by texture ID to minimize draw calls.
+* **UI Components:** ECS-driven — entities have `UIBaseComponent` (position, z-order, visibility), `UITextComponent`, and `UIButtonComponent`.
+* **Button Interaction:** Per-frame hit-testing against mouse position with three visual states — normal, hovered, and pressed — each with configurable colors.
+* **Lua Scripting:** Button click events call `OnButtonClicked` function into the attached Lua script via `sol2`, keeping gameplay UI logic fully scriptable.
+
+### 6. Scripting System
+* Lua scripting via `sol2` with per-entity environment and hot-reloading at runtime. Scripts expose `OnCreate` and `OnUpdate` and full access to components of entity.
 ---
 
 ## 📂 Project Structure
@@ -54,5 +73,18 @@ Uses **Modern OpenGL (3.3+)** with a forward rendering path.
 * **Header Files/**: Engine and ECS architecture headers.
 * **Shaders/**: GLSL source files for rendering and shadow mapping.
 * **Source Files/**: Implementation of ECS logic, systems, and UI panels.
-
 ---
+
+## Build
+### Prerequisites
+* CMake 3.15+
+* C++17 compiler (Clang / GCC / MSVC)
+
+### Steps
+```bash
+git clone https://github.com/yourusername/MyEngine.git
+cd MyEngine
+mkdir build && cd build
+cmake ..
+cmake --build .
+```
