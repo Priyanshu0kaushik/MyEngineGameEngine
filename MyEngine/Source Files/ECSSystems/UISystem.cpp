@@ -13,6 +13,7 @@
 #include FT_FREETYPE_H
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <unordered_map>
 
 void UISystem::Init()
 {
@@ -246,7 +247,9 @@ void UISystem::RenderText(Shader& shader, std::string text, float x, float y, fl
 
     float startX = x;
     float lineHeight = 64.0f * scale * 1.2f;
-    
+
+    std::unordered_map<unsigned int, std::vector<float>> texVertices;
+
     for (auto c = text.begin(); c != text.end(); c++)
     {
         // new line handling
@@ -256,6 +259,8 @@ void UISystem::RenderText(Shader& shader, std::string text, float x, float y, fl
             y -= lineHeight;
             continue;
         }
+        if (m_Characters.find(*c) == m_Characters.end()) continue;
+        
         Character ch = m_Characters[*c];
 
         // position calculate
@@ -265,27 +270,31 @@ void UISystem::RenderText(Shader& shader, std::string text, float x, float y, fl
         float w = ch.Size.x * scale;
         float h = ch.Size.y * scale;
 
-        float vertices[6][4] = {
-            { xpos,     ypos + h,   0.0f, 0.0f },
-            { xpos,     ypos,       0.0f, 1.0f },
-            { xpos + w, ypos,       1.0f, 1.0f },
-            { xpos,     ypos + h,   0.0f, 0.0f },
-            { xpos + w, ypos,       1.0f, 1.0f },
-            { xpos + w, ypos + h,   1.0f, 0.0f }
+        std::vector<float> verts = {
+            xpos,     ypos + h, 0.0f, 0.0f,
+            xpos,     ypos,     0.0f, 1.0f,
+            xpos + w, ypos,     1.0f, 1.0f,
+            xpos,     ypos + h, 0.0f, 0.0f,
+            xpos + w, ypos,     1.0f, 1.0f,
+            xpos + w, ypos + h, 1.0f, 0.0f
         };
 
-        glBindTexture(GL_TEXTURE_2D, ch.TextureID);
+        texVertices[ch.TextureID].insert(
+            texVertices[ch.TextureID].end(), verts.begin(), verts.end()
+        );
 
-        glBindBuffer(GL_ARRAY_BUFFER, m_TextVBO);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-        // Render
-        glDrawArrays(GL_TRIANGLES, 0, 6);
-
-        // Advancing cursor for next character
         x += (ch.Advance >> 6) * scale;
     }
+
+    for (auto& [texID, verts] : texVertices)
+    {
+        glBindTexture(GL_TEXTURE_2D, texID);
+        glBindBuffer(GL_ARRAY_BUFFER, m_TextVBO);
+        glBufferData(GL_ARRAY_BUFFER, verts.size() * sizeof(float), verts.data(), GL_DYNAMIC_DRAW);
+        glDrawArrays(GL_TRIANGLES, 0, (GLsizei)(verts.size() / 4));
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+    }
+
     glBindVertexArray(0);
     glBindTexture(GL_TEXTURE_2D, 0);
 }

@@ -227,6 +227,7 @@ void Scene::Load(const std::string& filePath) {
     for (auto e : entities) {
         m_Coordinator.DestroyEntity(e);
     }
+    terrainSystem->Reset();
     
     mPendingMeshEntities.clear();
     std::string line;

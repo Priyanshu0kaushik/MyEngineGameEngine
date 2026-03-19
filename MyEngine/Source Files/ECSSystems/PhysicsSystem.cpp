@@ -67,6 +67,10 @@ void PhysicsSystem::Update(float deltaTime)
 
                 rb->velocity.x *= 0.95f;
                 rb->velocity.z *= 0.95f;
+                
+                if (auto* col = m_Coordinator->GetComponent<ColliderComponent>(entity)) {
+                    col->isColliding = true;
+                }
             }
         }
 

@@ -141,7 +141,7 @@ void EngineContext::OnEngineLoaded()
     physicsSystem->SetTerrainSystem(terrainSystem);
 
     // 3. Setup Scene & Rendering Context
-    m_Scene = new Scene(*m_Coordinator, renderSystem, cameraSystem, scriptSystem);
+    m_Scene = new Scene(*m_Coordinator, renderSystem, cameraSystem, scriptSystem, terrainSystem);
     m_ShaderManager = new ShaderManager();
     m_ShaderManager->Init();
 

@@ -18,7 +18,9 @@ public:
     void Render(Shader& shader);
     void CreateTerrain(Entity entity);
     float GetHeightAt(Entity entity, float worldX, float worldZ);
-
+    void Reset() {
+        m_TerrainEntity = UINT32_MAX;
+    }
     Entity GetTerrainEntity(){return m_TerrainEntity;}
 private:
     glm::mat4 GetWorldMatrix(const TransformComponent* transform);
