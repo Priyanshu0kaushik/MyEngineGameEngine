@@ -34,6 +34,7 @@ Entity Scene::DuplicateEntity(Entity entity)
     
     Entity newEntity = AddEntity(&m_Coordinator.GetComponent<NameComponent>(entity)->Name[0]);
     m_Coordinator.CopyComponents(entity, newEntity);
+    return newEntity;
 }
 
 void Scene::Save() {
