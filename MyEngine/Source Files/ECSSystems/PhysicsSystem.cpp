@@ -21,6 +21,10 @@ void PhysicsSystem::Update(float deltaTime)
 {
     if(!m_Coordinator) return;
         
+    for (auto itA = mEntities.begin(); itA != mEntities.end(); ++itA) {
+        auto* col = m_Coordinator->GetComponent<ColliderComponent>(*itA);
+        if (col) col->isColliding = false;
+    }
     for(Entity& entity : mEntities)
     {
         RigidBodyComponent* rb = m_Coordinator->GetComponent<RigidBodyComponent>(entity);
@@ -210,8 +214,6 @@ bool PhysicsSystem::CheckBoxBoxCollision(Entity entityA, Entity entityB) {
     
     auto* colA = m_Coordinator->GetComponent<ColliderComponent>(entityA);
     auto* colB = m_Coordinator->GetComponent<ColliderComponent>(entityB);
-    colA->isColliding = false;
-    colB->isColliding = false;
     
     if(entityA == entityB) return false;
     auto* boxA = m_Coordinator->GetComponent<BoxColliderComponent>(entityA);
@@ -397,11 +399,19 @@ bool PhysicsSystem::CheckSphereBoxCollision(Entity sphereEnt, Entity boxEnt) {
         float overlap = sphereData->radius - distance;
          
         // Calculate collision normal in Local Space
-        glm::vec3 localNormal = glm::normalize(localSphereCenter - closestPoint);
-         
+        glm::vec3 diff = localSphereCenter - closestPoint;
+        glm::vec3 localNormal;
+        if (glm::length(diff) < 0.0001f)
+            localNormal = glm::vec3(0.0f, 1.0f, 0.0f);
+        else
+            localNormal = glm::normalize(diff);
+        
         // Transform normal back to World Space
-        glm::vec3 worldNormal = glm::normalize(glm::vec3(boxCol->worldTransform * glm::vec4(localNormal, 0.0f)));
-         
+        glm::vec3 worldNormal = glm::vec3(boxCol->worldTransform * glm::vec4(localNormal, 0.0f));
+        if (glm::length(worldNormal) < 0.0001f)
+            worldNormal = glm::vec3(0.0f, 1.0f, 0.0f);
+        else
+            worldNormal = glm::normalize(worldNormal);
         
         auto* sphereTransform = m_Coordinator->GetComponent<TransformComponent>(sphereEnt);
         auto* rb = m_Coordinator->GetComponent<RigidBodyComponent>(sphereEnt);

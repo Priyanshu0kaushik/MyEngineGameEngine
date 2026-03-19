@@ -179,7 +179,7 @@ float TerrainSystem::GetHeightAt(Entity entity, float worldX, float worldZ) {
     int x0 = (int)std::floor(gridX);
     int z0 = (int)std::floor(gridZ);
     
-    if (x0 < 0 || x0 >= terrain->width - 1 || z0 < 0 || z0 >= terrain->height - 1) return 0.0f;
+    if (x0 < 0 || x0 >= terrain->width - 1 || z0 < 0 || z0 >= terrain->height - 1) return -9999.0f;
     
     float dx = gridX - (float)x0;
     float dz = gridZ - (float)z0;

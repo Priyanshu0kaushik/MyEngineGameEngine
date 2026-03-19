@@ -64,6 +64,12 @@ void ScriptManager::Init()
         "Box", ColliderType::Box,
         "Sphere", ColliderType::Sphere
     );
+    
+    m_Lua.new_usertype<ColliderComponent>("Collider",
+        "isColliding", &ColliderComponent::isColliding,
+        "isTrigger", &ColliderComponent::isTrigger,
+        "bounciness", &ColliderComponent::bounciness
+    );
 
     m_Lua.new_usertype<glm::vec3>("vec3",
         sol::constructors<glm::vec3(), glm::vec3(float, float, float)>(),
@@ -148,6 +154,10 @@ void ScriptManager::Init()
     
     m_Lua.set_function("GetTextUI", [&](Entity entity) {
         return m_Coordinator->GetComponent<UITextComponent>(entity);
+    });
+    
+    m_Lua.set_function("GetCollider", [&](Entity entity) {
+        return m_Coordinator->GetComponent<ColliderComponent>(entity);
     });
     
     m_Lua.set_function("ReadFile", [](std::string path) {

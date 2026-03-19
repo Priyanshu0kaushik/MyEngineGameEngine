@@ -501,6 +501,7 @@ void EngineContext::OnEditMode()
     if (!startScenePath.empty()) {
         RequestSceneChange(startScenePath, true);
     }
+    StopPlayTimer();
 }
 
 void EngineContext::SaveScene()
@@ -552,6 +553,8 @@ void EngineContext::StartPlayTimer()
 
 float EngineContext::StopPlayTimer()
 {
+    float finalTime = m_PlayTime;
     m_isPlaying = false;
-    return m_PlayTime;
+    m_PlayTime = 0;
+    return finalTime;
 }

@@ -244,8 +244,18 @@ void UISystem::RenderText(Shader& shader, std::string text, float x, float y, fl
     glActiveTexture(GL_TEXTURE0);
     glBindVertexArray(m_TextVAO);
 
+    float startX = x;
+    float lineHeight = 64.0f * scale * 1.2f;
+    
     for (auto c = text.begin(); c != text.end(); c++)
     {
+        // new line handling
+        if (*c == '\n')
+        {
+            x = startX;
+            y -= lineHeight;
+            continue;
+        }
         Character ch = m_Characters[*c];
 
         // position calculate
