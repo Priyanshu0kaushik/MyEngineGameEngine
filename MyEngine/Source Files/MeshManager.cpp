@@ -47,6 +47,7 @@ bool MeshManager::LoadMesh(const std::string& path, Mesh* target)
         std::cout<<"[Optimized] Loading Binary : " << binPath << std::endl;
         LoadMeshBinary(binPath, meshData);
         *target = meshData;
+        target->IsLoaded = true;
         return true;
     }
     else{

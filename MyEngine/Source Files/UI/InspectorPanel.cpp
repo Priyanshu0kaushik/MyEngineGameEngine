@@ -618,7 +618,7 @@ void InspectorPanel::DrawAssetSlot(const char* Name, std::string& relativePath, 
             fullPath = assetPath;
             relativePath = relPath;
             iD = UINT32_MAX;
-            AssetManager::Get().GetAsset(Project::GetAbsolutePath(fullPath));
+            AssetManager::Get().GetAsset(fullPath);
             std::cout << "Dropped and Loaded: " << fullPath << std::endl;
         }
         ImGui::EndDragDropTarget();

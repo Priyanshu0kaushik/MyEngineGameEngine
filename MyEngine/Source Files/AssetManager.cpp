@@ -93,7 +93,7 @@ bool AssetManager::LoadAsset(const std::string& path, AssetHandle& result)
             }
             else return false;
         });
-        
+        break;
     case AssetType::Material:
         std::cout << "[AssetManager-LoadAsset] Detected Material: " << path << std::endl;
         break;
