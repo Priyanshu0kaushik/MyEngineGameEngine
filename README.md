@@ -86,5 +86,5 @@ git clone https://github.com/yourusername/MyEngine.git
 cd MyEngine
 mkdir build && cd build
 cmake ..
-cmake --build .
+cmake --build . --config Debug
 ```
